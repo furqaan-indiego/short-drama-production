@@ -14,7 +14,7 @@
 
 **内置 MiniMax 官方与 CompShare H3 执行路径；采用 Apache-2.0，可自由二次开发，并按需扩展 ComfyUI API。**
 
-`AI 短剧` · `短剧 Skill` · `MiniMax H3` · `Codex Skill` · `AI Video` · `ComfyUI`
+`AI 短剧` · `短剧skill` · `MiniMax H3` · `Codex Skill` · `AI Video` · `ComfyUI`
 
 </div>
 
