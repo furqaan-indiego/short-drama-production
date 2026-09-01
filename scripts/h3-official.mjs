@@ -77,38 +77,38 @@ function extractPrompt(file) {
 
 function mediaContent(reference, manifestPath, hashes) {
   const type = ROLE_TO_TYPE[reference.role];
-  if (!type) throw new Error(`不支持的 H3 reference role: ${reference.role}`);
+  if (!type) throw new Error(`Unsupported H3 reference role: ${reference.role}`);
   let url = reference.url;
   let bytes = 0;
   let sha256 = null;
   if (!isFilled(url)) {
-    if (!isFilled(reference.path)) throw new Error(`${reference.refId ?? reference.role} 缺少 path 或 url`);
+    if (!isFilled(reference.path)) throw new Error(`${reference.refId ?? reference.role} is missing path or url`);
     const file = resolveStored(manifestPath, reference.path);
-    if (!fs.existsSync(file) || !fs.statSync(file).isFile()) throw new Error(`参考文件不存在: ${file}`);
+    if (!fs.existsSync(file) || !fs.statSync(file).isFile()) throw new Error(`Reference file does not exist: ${file}`);
     const extension = path.extname(file).toLowerCase();
     const mime = EXTENSION_MIME[extension];
-    if (!mime || !mime.startsWith(type.split("_")[0])) throw new Error(`${reference.refId ?? reference.role} 文件格式与 ${type} 不匹配: ${extension}`);
+    if (!mime || !mime.startsWith(type.split("_")[0])) throw new Error(`${reference.refId ?? reference.role} file format does not match ${type}: ${extension}`);
     const raw = fs.readFileSync(file);
     bytes = raw.byteLength;
-    if (bytes > MAX_BYTES[type]) throw new Error(`${reference.refId ?? reference.role} 超过单文件大小限制`);
+    if (bytes > MAX_BYTES[type]) throw new Error(`${reference.refId ?? reference.role} exceeds the per-file size limit`);
     sha256 = crypto.createHash("sha256").update(raw).digest("hex");
-    if (hashes.has(sha256)) throw new Error(`${reference.refId ?? reference.role} 与其他本地参考文件内容重复`);
+    if (hashes.has(sha256)) throw new Error(`${reference.refId ?? reference.role} duplicates another local reference file`);
     hashes.add(sha256);
     url = `data:${mime};base64,${raw.toString("base64")}`;
   } else if (!/^https?:\/\//i.test(url)) {
-    throw new Error(`${reference.refId ?? reference.role} 的 url 必须是 HTTP(S) 地址`);
+    throw new Error(`${reference.refId ?? reference.role} url must be an HTTP(S) address`);
   }
   return { content: { type, [type]: { url }, role: reference.role }, audit: { refId: reference.refId, role: reference.role, source: sha256 ? "embedded-local" : "public-url", bytes, sha256 } };
 }
 
 export function buildH3Request(manifest, manifestPath, jobId) {
   const job = (manifest.jobs ?? []).find((item) => item?.jobId === jobId);
-  if (!job) throw new Error(`找不到 H3 job: ${jobId}`);
+  if (!job) throw new Error(`H3 job not found: ${jobId}`);
   const promptFile = resolveStored(manifestPath, job.promptPath);
-  if (!fs.existsSync(promptFile) || !fs.statSync(promptFile).isFile()) throw new Error(`提示词文件不存在: ${promptFile}`);
+  if (!fs.existsSync(promptFile) || !fs.statSync(promptFile).isFile()) throw new Error(`Prompt file does not exist: ${promptFile}`);
   const prompt = extractPrompt(promptFile);
-  if (!prompt) throw new Error("H3 提示词为空");
-  if (prompt.length > 7000) throw new Error(`H3 提示词超过官方 7000 字符限制: ${prompt.length}`);
+  if (!prompt) throw new Error("H3 prompt is empty");
+  if (prompt.length > 7000) throw new Error(`H3 prompt exceeds the official 7,000-character limit: ${prompt.length}`);
   const hashes = new Set();
   const media = (job.references ?? []).map((reference) => mediaContent(reference, manifestPath, hashes));
   const content = [{ type: "text", text: prompt }, ...media.map((item) => item.content)];
@@ -123,7 +123,7 @@ export function buildH3Request(manifest, manifestPath, jobId) {
   };
   if (isFilled(job.callbackUrl)) payload.callback_url = job.callbackUrl;
   const payloadBytes = Buffer.byteLength(JSON.stringify(payload));
-  if (payloadBytes > 64 * 1024 * 1024) throw new Error(`H3 请求体 ${payloadBytes} bytes 超过官方 64 MB 限制；请改用稳定公网 URL`);
+  if (payloadBytes > 64 * 1024 * 1024) throw new Error(`H3 request body of ${payloadBytes} bytes exceeds the official 64 MB limit; use a stable public URL instead`);
   return { job, payload, audit: { jobId, promptFile, promptCharacters: prompt.length, payloadBytes, media: media.map((item) => item.audit), ratio, resolution: payload.resolution, duration: payload.duration } };
 }
 
@@ -151,7 +151,7 @@ function apiKey() {
   const configured = String(process.env.MINIMAX_API_KEY_FILE ?? "").trim();
   const keyFile = configured ? path.resolve(configured) : path.join(os.homedir(), ".codex", "secrets", "minimax.key");
   if (!key && fs.existsSync(keyFile)) key = fs.readFileSync(keyFile, "utf8").replace(/^\uFEFF/, "").trim();
-  if (!key) throw new Error("缺少 MINIMAX_API_KEY、MINIMAX_API_KEY_FILE 或 ~/.codex/secrets/minimax.key");
+  if (!key) throw new Error("Missing MINIMAX_API_KEY, MINIMAX_API_KEY_FILE, or ~/.codex/secrets/minimax.key");
   return key;
 }
 
@@ -162,7 +162,7 @@ async function requestJson(url, options = {}) {
     const response = await fetch(url, { ...options, signal: controller.signal, headers: { Authorization: `Bearer ${apiKey()}`, Accept: "application/json", ...(options.headers ?? {}) } });
     const text = await response.text();
     let value;
-    try { value = JSON.parse(text); } catch { throw new Error(`MiniMax 返回非 JSON: ${text.slice(0, 500)}`); }
+    try { value = JSON.parse(text); } catch { throw new Error(`MiniMax returned non-JSON: ${text.slice(0, 500)}`); }
     if (!response.ok) throw new Error(`MiniMax HTTP ${response.status}: ${JSON.stringify(value)}`);
     return value;
   } finally {
@@ -172,7 +172,7 @@ async function requestJson(url, options = {}) {
 
 async function queryTask(taskId) {
   const value = await requestJson(`${BASE_URL}/v2/query/video_generation/${encodeURIComponent(taskId)}`);
-  if (!value?.task || typeof value.task !== "object") throw new Error("MiniMax 查询结果缺少 task");
+  if (!value?.task || typeof value.task !== "object") throw new Error("MiniMax query result is missing task");
   return value.task;
 }
 
@@ -190,7 +190,7 @@ function syncTask(job, task) {
 
 async function downloadVideo(url, output) {
   const response = await fetch(url, { headers: { Accept: "video/mp4,*/*" } });
-  if (!response.ok || !response.body) throw new Error(`视频下载失败 HTTP ${response.status}`);
+  if (!response.ok || !response.body) throw new Error(`Video download failed: HTTP ${response.status}`);
   fs.mkdirSync(path.dirname(output), { recursive: true });
   const temporary = `${output}.part`;
   try {
@@ -205,9 +205,9 @@ async function downloadVideo(url, output) {
 async function submit(manifest, manifestPath, jobId) {
   const built = buildH3Request(manifest, manifestPath, jobId);
   const job = built.job;
-  if (job.status !== "approved" || job.costApproved !== true) throw new Error(`job ${jobId} 必须先 job-approve 并处于 approved`);
+  if (job.status !== "approved" || job.costApproved !== true) throw new Error(`job ${jobId} must first be job-approved and have approved status`);
   const response = await requestJson(`${BASE_URL}/v2/video_generation`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(built.payload) });
-  if (!isFilled(response?.task_id)) throw new Error(`MiniMax 提交结果缺少 task_id: ${JSON.stringify(response)}`);
+  if (!isFilled(response?.task_id)) throw new Error(`MiniMax submission result is missing task_id: ${JSON.stringify(response)}`);
   job.status = "submitted";
   job.attempt = Number(job.attempt ?? 0) + 1;
   job.execution = { provider: "minimax-official", taskId: response.task_id, submittedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
@@ -217,7 +217,7 @@ async function submit(manifest, manifestPath, jobId) {
 
 async function pollOnce(manifest, manifestPath, jobId) {
   const job = (manifest.jobs ?? []).find((item) => item?.jobId === jobId);
-  if (!job?.execution?.taskId) throw new Error(`job ${jobId} 没有 execution.taskId`);
+  if (!job?.execution?.taskId) throw new Error(`job ${jobId} has no execution.taskId`);
   const task = await queryTask(job.execution.taskId);
   syncTask(job, task);
   if (task.status === "succeeded" && isFilled(task.content?.url)) {
@@ -250,11 +250,11 @@ Usage:
 async function main() {
   const [command, target, ...args] = process.argv.slice(2);
   if (!command || ["help", "-h", "--help"].includes(command)) return usage();
-  if (!target) throw new Error(`${command} 需要 production.json`);
+  if (!target) throw new Error(`${command} requires production.json`);
   const manifestPath = path.resolve(target);
   const manifest = readJson(manifestPath);
   const jobId = option(args, "--id", "");
-  if (!isFilled(jobId)) throw new Error("缺少 --id <job>");
+  if (!isFilled(jobId)) throw new Error("Missing --id <job>");
   if (command === "preflight") {
     const result = preflightH3Job(manifest, manifestPath, jobId);
     console.log(JSON.stringify(result, null, 2));
@@ -267,7 +267,7 @@ async function main() {
     return;
   }
   if (command === "submit") {
-    if (option(args, "--confirm-submit", "") !== jobId) throw new Error(`付费提交必须显式写 --confirm-submit ${jobId}`);
+    if (option(args, "--confirm-submit", "") !== jobId) throw new Error(`Paid submission requires explicit --confirm-submit ${jobId}`);
     console.log(JSON.stringify(await submit(manifest, manifestPath, jobId), null, 2));
     return;
   }
@@ -278,7 +278,7 @@ async function main() {
   if (command === "wait") {
     const poll = Number(option(args, "--poll", "10"));
     const timeout = Number(option(args, "--timeout", "3600"));
-    if (!Number.isFinite(poll) || poll < 2 || !Number.isFinite(timeout) || timeout < 1) throw new Error("poll/timeout 参数无效");
+    if (!Number.isFinite(poll) || poll < 2 || !Number.isFinite(timeout) || timeout < 1) throw new Error("Invalid poll/timeout parameters");
     const deadline = Date.now() + timeout * 1000;
     while (true) {
       const current = readJson(manifestPath);
@@ -288,7 +288,7 @@ async function main() {
         if (task.status !== "succeeded") process.exitCode = 1;
         return;
       }
-      if (Date.now() >= deadline) throw new Error(`等待 ${jobId} 超时，最后状态 ${task.status}`);
+      if (Date.now() >= deadline) throw new Error(`Timed out waiting for ${jobId}; last status: ${task.status}`);
       await new Promise((resolve) => setTimeout(resolve, poll * 1000));
     }
   }

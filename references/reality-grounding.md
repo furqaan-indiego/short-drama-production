@@ -1,58 +1,58 @@
-# 现实题材真实性门
+# Reality-subject grounding gate
 
-用于现实主义、纪实感或明确依赖真实行业流程的项目。它约束的是可核对的现实结构，不把“写实”误解成低饱和、旧化材质或手持摄影。
+Use this for projects that are realistic, documentary-like, or explicitly depend on real industry processes. It governs verifiable real-world structure; it does not mistake "realistic" for low saturation, weathered materials, or handheld cinematography.
 
-## 何时触发
+## When to trigger it
 
-出现以下任一内容时，在美术出图前建立 `reality-audit.json`：
+Create `reality-audit.json` before art generation if any of these apply:
 
-- 交通枢纽、医院、学校、公安司法、政务、银行、工厂、餐饮后厨等功能空间；
-- 安检、就诊、办事、生产、支付、执法等有固定设备或顺序的流程；
-- 地域生活、职业操作、年代器物或公共设施，模型容易用相邻行业的通用视觉替代；
-- 用户明确要求“真实、符合实际、专业流程、当地生活”。
+- Functional spaces such as transport hubs, hospitals, schools, police or judicial facilities, public-service offices, banks, factories, or commercial kitchens.
+- Processes with fixed equipment or sequence, such as security checks, medical visits, administrative work, production, payment, or law enforcement.
+- Local life, occupational practice, period objects, or public infrastructure that a model may replace with generic visuals from a neighboring industry.
+- The user explicitly requests content that is realistic, factually accurate, follows professional procedure, or reflects local life.
 
-## 五层核对
+## Five layers of verification
 
-1. **功能身份**：这个空间具体做什么，不能只写“现代公共空间”。
-2. **必需设备**：完成该功能不可缺少的设备、工作位和接口。
-3. **空间拓扑**：设备之间的邻接、朝向、前后关系和安全距离。
-4. **人流/物流**：入口、排队、操作、出口、逆流禁区；人物和物品是否走同向、并行或分流。
-5. **运行状态**：具体时段的人数、工作人员位置、生活用品、磨损和临时状态。
+1. **Functional identity:** What exactly does this space do? Do not write only "modern public space."
+2. **Required equipment:** Equipment, workstations, and interfaces indispensable to that function.
+3. **Spatial topology:** Adjacency, orientation, front/back relationships, and safety distances between equipment.
+4. **People and goods flow:** Entry, queueing, operation, exit, and no-counterflow zones; whether people and objects move in the same direction, parallel, or split streams.
+5. **Operating state:** Crowd level at a specific time, staff positions, everyday objects, wear, and temporary conditions.
 
-空间流程有超过 10% 的不确定性，或错误会改变画面拓扑时，先查资料。至少记录一条权威来源；需要视觉布局时再加一条现场图片来源。记录 URL、标题、访问日期与从来源得出的具体不变量，不用风格图代替事实来源。
+If the spatial process has more than 10% uncertainty, or an error would change image topology, research first. Record at least one authoritative source; add an on-site-image source when visual layout is needed. Record the URL, title, access date, and the concrete invariant derived from the source. Do not substitute style images for factual sources.
 
-## 资产图与成片图必须分层
+## Separate asset images from finished images
 
-- 环境设定图可以为了资产一致性保持**无人**，但不得删除完成现实功能所必需的设备、队列设施、操作台或出入口。
-- 成片关键帧按真实运行状态加入人物。人物密度、岗位、朝向和队列必须来自 `peoplePolicy`，不能直接继承资产图的“无人”。
-- “空景无人”只是一条人物图层规则，不是“空间闲置、无用品、无设备”的同义词。
+- A set-design image may remain **unpopulated** for asset consistency, but must not remove equipment, queue infrastructure, service counters, or entrances/exits necessary to its real function.
+- Finished keyframes add people according to real operating state. Density, jobs, orientation, and queueing must come from `peoplePolicy`; do not inherit the asset image's "unpopulated" state.
+- "No people in an establishing shot" is only a people-layer rule. It does not mean the space is idle, empty of supplies, or unequipped.
 
-## 提示词最低合同
+## Minimum prompt contract
 
-现实敏感场景的美术和分镜提示词必须同时写清：
+Art and storyboard prompts for reality-sensitive scenes must state:
 
-- 准确场所名与功能，不使用 `terminal`, `office`, `hall` 等过宽称呼独立承担身份；
-- `mustHave` 中的功能设备；
-- `topology` 和 `flow` 中的相对位置与单向关系；
-- `confusionsToAvoid`，明确排除最容易混淆的相邻场所；
-- 资产图的人物政策与成片镜头的人群政策。
+- The exact place name and function. Do not rely on broad terms such as `terminal`, `office`, or `hall` alone to establish identity.
+- Functional equipment from `mustHave`.
+- Relative positions and one-way relationships from `topology` and `flow`.
+- `confusionsToAvoid`, explicitly excluding the most easily confused neighboring locations.
+- The people policy for asset images and the crowd policy for finished shots.
 
-## 出图验收
+## Image acceptance
 
-任一条件成立即退回重做：
+Return the image for rework if any condition is true:
 
-- 去掉提示词后，画面更像另一个行业或另一类场所；
-- 缺少一件 `mustHave`，或设备虽齐但无法按所写流程工作；
-- 入口、操作点、出口互相阻塞，出现穿越设备、交叉队列或无出口；
-- 现实运行中的生活用品、工作人员或人流被“电影感留白”全部清空；
-- 为了显得繁忙而复制相同人物、箱包或工位用品。
+- Without the prompt, it resembles another industry or another type of place more strongly.
+- A `mustHave` item is missing, or equipment is present but cannot perform the stated process.
+- Entrance, operation point, and exit block one another; equipment is crossed through, queues intersect, or no exit exists.
+- Everyday objects, staff, or real-world traffic are entirely erased to create "cinematic negative space."
+- The same person, luggage, or workstation supplies are copied to make the image look busy.
 
-每次出图后更新 `audit.assetPrompt`、`audit.storyboard`、`audit.frames`。未达到 `pass` 的现实敏感场景不得进入付费视频生成。
+After every generation, update `audit.assetPrompt`, `audit.storyboard`, and `audit.frames`. A reality-sensitive scene that has not reached `pass` must not enter paid video generation.
 
-## 校验
+## Validation
 
 ```bash
 node scripts/reality-audit.mjs validate <project>/reality-audit.json
 ```
 
-校验器只保证审计字段和来源齐全；画面是否真的符合现实流程仍需人工对照关键帧。
+The validator guarantees only that audit fields and sources are present. A human must still compare keyframes to determine whether the image truly follows real-world process.

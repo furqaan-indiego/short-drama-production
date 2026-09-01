@@ -1,64 +1,64 @@
-# 生成、后期与成片 QC
+# Generation, post-production, and finished-video QC
 
-## 1. 样片策略
+## 1. Pilot strategy
 
-首个付费任务选择最能暴露系统问题的片段，而不是最简单的空镜。建议包含：
+Choose the first paid job for the segment most likely to expose system problems, not the simplest empty establishing shot. It should include:
 
-- 主角清晰面部与固定服装。
-- 一句中文对白和参考音色。
-- 一次有动机的镜头运动。
-- 一件手部道具或人物交互。
-- 可判断光照与画风的场景。
+- A clearly visible protagonist face and fixed costume.
+- One line of spoken dialogue and a reference voice.
+- One motivated camera move.
+- A hand prop or character interaction.
+- A set where lighting and visual style can be judged.
 
-样片通过角色一致性、声音、口型、动作、运镜和画风后，再批准一场或一集。
+Approve a scene or episode only after the pilot passes character consistency, voice, lip sync, action, camera movement, and visual style.
 
-## 2. 生成任务验收
+## 2. Generation-job acceptance
 
-技术：
+Technical:
 
-- 文件可解码；分辨率、画幅、帧率、时长正确。
-- 无黑帧、重复帧、冻结、破音、削波或明显编码损坏。
-- 输出文件与任务 ID、提示词和参考图哈希对应。
+- File decodes; resolution, aspect ratio, frame rate, and duration are correct.
+- No black frames, duplicate frames, freezes, broken audio, clipping, or obvious encoding damage.
+- Output file maps to the job ID, prompt, and reference-image hashes.
 
-视觉：
+Visual:
 
-- 人脸、发型、服装、年龄和体型连续。
-- 手、道具、文字和镜面可接受。
-- 调度、屏幕方向、视线和动作相位可剪。
-- 景别、构图和运镜达到导演意图。
-- 主体、道具和环境运动按计划启动、发展并落到可剪状态；不得把摄影机移动误判成画面内运动已经完成。
-- 节奏验收逐项记录信息首次可读时间、读懂后的冗余停留和转折反应长度。提速优先重排镜头，不把正式成片整体倍速。
+- Face, hairstyle, costume, perceived age, and body type continue correctly.
+- Hands, props, text, and mirrors are acceptable.
+- Blocking, screen direction, eyelines, and action phase are editable.
+- Shot size, composition, and camera movement meet directorial intent.
+- Subject, prop, and environment movement begin, develop, and land in an editable state as planned; do not mistake camera movement for completed in-frame movement.
+- Rhythm acceptance records, item by item, when information first becomes legible, redundant dwell after comprehension, and turning-point reaction length. Prefer rearranging shots to speed up pacing; do not globally speed up final output.
 
-声音：
+Sound:
 
-- 台词逐字准确，音色属于该角色。
-- 开口、停顿、闭口和口型基本对应。
-- 环境空间与画面一致。
-- 多段之间响度、底噪、混响和音色可衔接。
-- 不保留片段内随机生成、无法连续的配乐。
+- Dialogue is word-accurate and the timbre belongs to the character.
+- Mouth opening, pauses, closing, and lip motion broadly align.
+- Environmental space matches the image.
+- Loudness, background noise, reverb, and timbre connect across segments.
+- Do not retain randomly generated in-segment music that cannot continue.
 
-## 3. 后期顺序
+## 3. Post-production order
 
-1. 按导演切点建立画面粗剪。
-2. 修正动作相位、反应长度、J-cut / L-cut。
-3. 确定对白路线，替换失败对白时先处理原混合声轨。
-4. 铺统一环境底和必要拟音。
-5. 统一配乐与段落动机。
-6. 字幕、片头尾、平台安全区。
-7. 基础色彩和镜头间亮度匹配。
-8. 响度、峰值、声道与导出检查。
+1. Build the image rough cut at the director's cut points.
+2. Correct action phase, reaction duration, and J-cuts / L-cuts.
+3. Decide the dialogue route; when replacing failed dialogue, deal with the original mixed track first.
+4. Lay unified ambience and necessary foley.
+5. Unify score and segment motifs.
+6. Add subtitles, opening/closing material, and platform safe areas.
+7. Apply basic color and match brightness between shots.
+8. Check loudness, peaks, channel layout, and export.
 
-不要先用音乐掩盖节奏问题，也不要在画面未锁定前精修所有声音。
+Do not use music to hide rhythm problems first, and do not polish every sound before the image is locked.
 
-### 内置粗剪工具
+### Included rough-cut tool
 
-`scripts/post-kit.mjs` 已实现第一层自动化：
+`scripts/post-kit.mjs` implements the first automation layer:
 
-- 只收集 `status=succeeded` 的生成片段，按集和 `sequence` 排序。
-- 固定输入文件 SHA-256、期望时长和输出路径，生成 `edit-plan.json`。
-- 使用 ffprobe 检查可解码性、视频/音频流、画幅和帧率。
-- 生成 FFmpeg filter graph，将片段按 `contain-pad` 统一为项目交付尺寸、24 fps、48 kHz 立体声并顺序拼接。
-- 对粗剪输出检查尺寸、音视频流和总时长。
+- Collects only generated segments where `status=succeeded`, sorted by episode and `sequence`.
+- Locks input-file SHA-256, expected duration, and output path to create `edit-plan.json`.
+- Uses ffprobe to check decodability, video/audio streams, aspect ratio, and frame rate.
+- Generates an FFmpeg filter graph that normalizes segments through `contain-pad` to the project's delivery size, 24 fps, 48 kHz stereo, then concatenates them.
+- Checks rough-cut output for dimensions, audio/video streams, and total duration.
 
 ```bash
 node scripts/post-kit.mjs plan <production.json> --out <edit-plan.json>
@@ -68,51 +68,51 @@ node scripts/post-kit.mjs assemble <edit-plan.json> --execute
 node scripts/post-kit.mjs qc <edit-plan.json>
 ```
 
-不带 `--execute` 只显示命令，不产生粗剪。当前工作站必须自行提供 FFmpeg/ffprobe；缺失时计划仍可生成，但编解码预检和实际装配会明确降级或停止。
+Without `--execute`, it only prints the command and does not create a rough cut. The current workstation must provide FFmpeg/ffprobe. If they are absent, the plan can still be created, but codec preflight and actual assembly will explicitly degrade or stop.
 
-## 4. 成片五类 QC
+## 4. Five finished-video QC categories
 
-### 叙事
+### Narrative
 
-- 冷开场承诺是否在前几拍具象兑现。
-- 静音观看是否理解目标、阻碍和权力变化。
-- 爽点和证据是否清楚，不依赖字幕补课。
-- 最后画面是否形成具体悬念。
+- Does the cold open's promise become concrete in the first few beats?
+- When watched muted, are objective, obstacle, and power change understandable?
+- Are payoffs and evidence clear without subtitles teaching the audience what happened?
+- Does the last image create specific suspense?
 
-### 导演
+### Directing
 
-- 近景和特写是否留给转折、证据或反应。
-- 运镜是否有行动或信息触发。
-- 反应镜头是否改变局势。
-- 轴线、视线和屏幕方向是否连续。
+- Are medium-close and close shots reserved for turns, evidence, or reactions?
+- Does camera movement have an action or information trigger?
+- Do reaction shots change the situation?
+- Are axis, eyelines, and screen direction continuous?
 
-### 资产连续性
+### Asset continuity
 
-- 角色身份、服装、伤痕、妆发和持物状态。
-- 场景锚点、时间、天气和光照。
-- 叙事道具的控制者与状态弧。
+- Character identity, wardrobe, wounds, hair/makeup, and held-object state.
+- Set anchors, time of day, weather, and lighting.
+- Controller and state arc of narrative props.
 
-### 声音
+### Sound
 
-- 音色、语言、情绪和台词准确度。
-- 响度、房间感、音乐连续性、对白可懂度。
-- 无双重对白、残留模型音乐或突兀噪声门。
+- Timbre, language, emotion, and dialogue accuracy.
+- Loudness, room tone, music continuity, and dialogue intelligibility.
+- No doubled dialogue, leftover model music, or abrupt noise gates.
 
-### 技术与交付
+### Technical and delivery
 
-- 画幅、分辨率、帧率、码率和总时长。
-- 字幕同步、错字、安全区和可读性。
-- 文件命名、版本、封面、平台要求和校验和。
+- Aspect ratio, resolution, frame rate, bitrate, and total duration.
+- Subtitle synchronization, typos, safe area, and legibility.
+- Filename, version, cover image, platform requirements, and checksums.
 
-## 5. 问题等级
+## 5. Issue severity
 
-- `critical`：剧情错误、角色错人、严重台词错误、无法播放、权利问题；禁止交付。
-- `high`：关键表演、声音或连续性失败；必须返工。
-- `medium`：局部穿帮、节奏或混音问题；返工或明确接受。
-- `low`：不影响理解的轻微瑕疵；可记录后接受。
+- `critical`: plot error, wrong character, severe dialogue error, unplayable file, or rights issue; delivery is forbidden.
+- `high`: failure in key performance, sound, or continuity; rework is required.
+- `medium`: local artifact, pacing, or mix issue; rework or explicitly accept.
+- `low`: minor flaw that does not affect comprehension; may be recorded and accepted.
 
-每个问题必须关联：集、时间码、镜头/任务 ID、问题类型、证据、根因、修复层级和复验状态。修复层级优先从上游真实原因开始：资产 → 剧本/导演 → 分镜/提示词 → 重生成 → 后期。
+Every issue must link episode, timecode, shot/job ID, issue type, evidence, root cause, repair layer, and verification state. Start repair layers at the real upstream cause: asset → script/directing → storyboard/prompt → regeneration → post-production.
 
-## 6. 工具边界
+## 6. Tool boundary
 
-内置后期工具只做 FFmpeg 顺序粗剪计划、执行和基础探测。复杂 J/L cut、字幕、调色、多轨混音、口型修复、声源分离及逐帧视觉检测不属于本 skill；使用外部工具时把结果登记为独立制品。`production.json` 通过校验不等于成片通过人工审片。
+The included post tool only creates, executes, and performs basic inspection of FFmpeg sequential rough-cut plans. Complex J/L cuts, subtitles, grading, multitrack mixing, lip-sync repair, source separation, and frame-by-frame visual inspection are outside this skill. Register results from external tools as independent artifacts. A valid `production.json` does not mean that the finished video passed human review.

@@ -53,27 +53,27 @@ function writeSilentWav(file, seconds = 8, sampleRate = 8000) {
   write(file, buffer);
 }
 
-function setup(name = "fixture", scriptData = { source: "样片", episodes: [{ ep: 1, scenes: [] }] }) {
+function setup(name = "fixture", scriptData = { source: "Pilot", episodes: [{ ep: 1, scenes: [] }] }) {
   const root = path.join(tempRoot, name);
   fs.mkdirSync(root, { recursive: true });
   const source = path.join(root, "source.txt");
   const manifestPath = path.join(root, "production.json");
   const outline = path.join(root, "outline.json");
   const script = path.join(root, "script.json");
-  write(source, "原著内容");
-  write(outline, JSON.stringify({ title: "样片", episodes: [{ ep: 1 }] }));
+  write(source, "Source story content");
+  write(outline, JSON.stringify({ title: "Pilot", episodes: [{ ep: 1 }] }));
   write(script, JSON.stringify(scriptData));
-  const manifest = createManifest({ title: "样片", sourcePath: source, manifestPath });
+  const manifest = createManifest({ title: "Pilot", sourcePath: source, manifestPath });
   registerArtifact(manifest, manifestPath, { id: "outline", kind: "outline", stage: "outline", path: outline, dependsOn: ["source"], episodes: "all", producer: "novel-outline" });
-  approveArtifact(manifest, manifestPath, "outline", "user", "大纲锁定");
+  approveArtifact(manifest, manifestPath, "outline", "user", "Outline locked");
   registerArtifact(manifest, manifestPath, { id: "script-e01", kind: "script", stage: "script", path: script, dependsOn: ["outline"], episodes: "1", producer: "novel-script" });
-  approveArtifact(manifest, manifestPath, "script-e01", "user", "第一集剧本锁定");
+  approveArtifact(manifest, manifestPath, "script-e01", "user", "Episode 1 script locked");
   return { root, source, outline, script, manifestPath, manifest };
 }
 
 function bridgeFixture(root) {
   const script = {
-    source: "横屏样片",
+    source: "Landscape pilot",
     episodes: [{
       ep: 1,
       targetSeconds: 8,
@@ -83,15 +83,15 @@ function bridgeFixture(root) {
         characters: ["C01"],
         props: ["P01"],
         flow: [
-          { action: "她把合同推回桌面。" },
-          { speaker: "C01", line: "我不会签。", delivery: "克制" }
+          { action: "She pushes the contract back across the table." },
+          { speaker: "C01", line: "I will not sign.", delivery: "restrained" }
         ]
       }]
     }]
   };
   const director = {
     schemaVersion: "1.0",
-    title: "横屏样片",
+    title: "Landscape Pilot",
     source: "script.json",
     format: { aspectRatio: "16:9", fps: 24, audioRoute: "h3-native-reference", generation: { mode: "h3-ref2va" } },
     episodes: [{
@@ -100,14 +100,14 @@ function bridgeFixture(root) {
         sceneId: "E01-S01",
         sourceSceneId: "S01",
         sourceBeats: [
-          { beatId: "E01-S01-B001", kind: "action", text: "她把合同推回桌面。" },
-          { beatId: "E01-S01-B002", kind: "dialogue", speaker: "C01", text: "我不会签。" }
+          { beatId: "E01-S01-B001", kind: "action", text: "She pushes the contract back across the table." },
+          { beatId: "E01-S01-B002", kind: "dialogue", speaker: "C01", text: "I will not sign." }
         ],
         clips: [{
           clipId: "E01-S01-C01",
           duration: 8,
-          dramaticFunction: "从合同动作转入拒绝签字的权力逆转",
-          audioPlan: "H3 参考人物音色，音乐后期",
+          dramaticFunction: "The contract action turns into a power reversal through refusal to sign",
+          audioPlan: "H3 references character voice timbre; music is added in post",
           referenceMode: "multi-reference",
           references: [
             { refId: "IMG-C01", role: "reference_image", path: "C01.png", characterId: "C01" },
@@ -117,20 +117,20 @@ function bridgeFixture(root) {
           shots: [
             {
               shotId: "E01-S01-C01-SH01", start: 0, duration: 4, beatRefs: ["E01-S01-B001"], dialogueRefs: [],
-              dramaticPurpose: "用横向桌面关系展示她第一次拒绝被控制", size: "MWS", angle: "eye", lensMm: 35,
-              camera: { move: "track", trigger: "合同被推回", path: "沿桌沿短距离侧移", speed: "slow", endState: "双方进入同一横向关系" },
-              composition: "两人分处横屏左右三分位", blocking: "她把合同推向对方", eyeline: "平视", screenDirection: "left-to-right", axisAction: "keep", transition: "cut",
+              dramaticPurpose: "Use the lateral table relationship to show her first refusal to be controlled", size: "MWS", angle: "eye", lensMm: 35,
+              camera: { move: "track", trigger: "contract slides back", path: "short lateral move along the table edge", speed: "slow", endState: "both enter the same lateral relationship" },
+              composition: "the two people occupy opposing left/right thirds of the landscape frame", blocking: "she pushes the contract toward the other person", eyeline: "level", screenDirection: "left-to-right", axisAction: "keep", transition: "cut",
               framePrompt: "cinematic film still, wide shot, two people separated across a table", props: ["P01"]
             },
             {
               shotId: "E01-S01-C01-SH02", start: 4, duration: 4, beatRefs: ["E01-S01-B002"], dialogueRefs: ["E01-S01-B002"],
-              dramaticPurpose: "切近她的克制拒绝，完成权力逆转", size: "CU", angle: "eye", lensMm: 75,
+              dramaticPurpose: "Cut close on her restrained refusal to complete the power reversal", size: "CU", angle: "eye", lensMm: 75,
               camera: { move: "static", trigger: "", path: "", speed: "", endState: "" },
-              composition: "她在左三分位，对手留在右侧虚焦前景", blocking: "她不躲避视线", eyeline: "平视", screenDirection: "neutral", axisAction: "keep", transition: "reaction_cut",
+              composition: "she is on the left third, with her opponent as soft foreground on the right", blocking: "she does not avert her gaze", eyeline: "level", screenDirection: "neutral", axisAction: "keep", transition: "reaction_cut",
               framePrompt: "cinematic film still, close-up, restrained woman with opponent in soft foreground"
             }
           ],
-          modelPrompt: "subject_definitions:\n<Audio 1> is the voice-timbre reference for <Subject 1> (S1).\nsummary:\nA contract refusal reverses power.\nretention_analysis:\n<Audio 1>: reference - preserve voice timbre.\ndetailed_description:\n[Shot 1] Tracking Shot as the contract slides across the table.\n[Shot 2] At 00:04.000, Static Shot on <Subject 1> (S1), <d>[Chinese]我不会签。</d>\noverall_soundscape:\nQuiet office ambience and paper friction.\nnon_diegetic_music:\nN/A"
+          modelPrompt: "subject_definitions:\n<Audio 1> is the voice-timbre reference for <Subject 1> (S1).\nsummary:\nA contract refusal reverses power.\nretention_analysis:\n<Audio 1>: reference - preserve voice timbre.\ndetailed_description:\n[Shot 1] Tracking Shot as the contract slides across the table.\n[Shot 2] At 00:04.000, Static Shot on <Subject 1> (S1), <d>[English]I will not sign.</d>\noverall_soundscape:\nQuiet office ambience and paper friction.\nnon_diegetic_music:\nN/A"
         }]
       }]
     }]
@@ -146,13 +146,13 @@ function addApprovedVoice(fixture, id = "V-C01-MASTER", character = "C01") {
     voiceAssetId: id,
     characterId: character,
     path: voice,
-    language: "zh",
+    language: "en",
     durationSeconds: 10,
     sampleType: "voice-master",
     rights: "synthetic",
     notes: "test"
   });
-  approveVoiceAsset(fixture.manifest, fixture.manifestPath, id, "user", "声音母版确认");
+  approveVoiceAsset(fixture.manifest, fixture.manifestPath, id, "user", "Voice master confirmed");
   return voice;
 }
 
@@ -161,7 +161,7 @@ function addValidJob(fixture) {
   const image = path.join(fixture.root, "C01.png");
   const prompt = path.join(fixture.root, "prompt.md");
   write(image, "image");
-  write(prompt, "[Shot 1] <Subject 1> (S1) speaks, <d>[Chinese]我不会签。</d>");
+  write(prompt, "[Shot 1] <Subject 1> (S1) speaks, <d>[English]I will not sign.</d>");
   const job = addJob(fixture.manifest, fixture.manifestPath, {
     jobId: "H3-E01-C01",
     episode: 1,
@@ -178,7 +178,7 @@ function addValidJob(fixture) {
     { refId: "AUD-C01", role: "reference_audio", path: voice, voiceAssetId: "V-C01-MASTER", durationSeconds: 10, relation: "reference" }
   ];
   job.speakers = [{ characterId: "C01", speakerId: "S1", voiceAssetId: "V-C01-MASTER", audioRefId: "AUD-C01" }];
-  approveJob(fixture.manifest, fixture.manifestPath, job.jobId, "user", "批准单个样片");
+  approveJob(fixture.manifest, fixture.manifestPath, job.jobId, "user", "Single pilot approved");
   return job;
 }
 
@@ -216,7 +216,7 @@ test("format changes invalidate every downstream artifact", () => {
 
 test("upstream edit makes itself review and downstream stale", () => {
   const fixture = setup("stale-propagation");
-  write(fixture.outline, JSON.stringify({ title: "样片", changed: true }));
+  write(fixture.outline, JSON.stringify({ title: "Pilot", changed: true }));
   refreshManifest(fixture.manifest, fixture.manifestPath);
   assert.equal(fixture.manifest.artifacts.find((item) => item.id === "outline").status, "review");
   assert.equal(fixture.manifest.artifacts.find((item) => item.id === "script-e01").status, "stale");
@@ -308,8 +308,8 @@ test("render and status expose operational state", () => {
   const status = statusText(fixture.manifest);
   const report = renderManifest(fixture.manifest, fixture.manifestPath);
   assert(status.includes("H3-E01-C01"));
-  assert(report.includes("# 样片｜短剧生产报告"));
-  assert(report.includes("声音资产"));
+  assert(report.includes("# Pilot | Short Drama Production Report"));
+  assert(report.includes("Voice assets"));
   assert(report.includes("1920×1080"));
 });
 
@@ -329,15 +329,15 @@ test("director bridge preserves shot intent and 16:9 contract", () => {
   const result = validateBridge(built.board, data.director, data.script, { aspectRatio: "16:9" });
   assert.equal(result.ok, true, JSON.stringify(result.errors, null, 2));
   const broken = clone(built.board);
-  broken.episodes[0].segments[0].cuts[0].dramaticPurpose = "改成普通建立镜头";
+  broken.episodes[0].segments[0].cuts[0].dramaticPurpose = "Changed to an ordinary establishing shot";
   assert(validateBridge(broken, data.director, data.script).errors.some((item) => item.includes("dramaticPurpose")));
   const approvedChange = clone(built.board);
   const segment = approvedChange.episodes[0].segments[0];
   segment.cuts[0].size = "medium";
-  segment.deviations.push({ deviationId: "DEV-E01-001", sourceShotId: "E01-S01-C01-SH01", fields: ["size"], reason: "参考图多人宽景稳定性不足", original: "wide", change: "medium", dramaticImpact: "空间压力减弱", approvedBy: "user", status: "approved" });
+  segment.deviations.push({ deviationId: "DEV-E01-001", sourceShotId: "E01-S01-C01-SH01", fields: ["size"], reason: "reference-image stability is insufficient for a multi-person wide shot", original: "wide", change: "medium", dramaticImpact: "spatial pressure is reduced", approvedBy: "user", status: "approved" });
   const approvedResult = validateBridge(approvedChange, data.director, data.script);
   assert.equal(approvedResult.ok, true, JSON.stringify(approvedResult.errors, null, 2));
-  assert(approvedResult.warnings.some((item) => item.includes("已批准技术偏差")));
+  assert(approvedResult.warnings.some((item) => item.includes("approved technical deviation")));
 });
 
 test("storyboard jobs sync into official H3 payload with audio reference", () => {
@@ -443,12 +443,12 @@ test("Fish free voice becomes an evaluation-only H3-ready master", () => {
   const fixture = setup("fish-master");
   const output = path.join(fixture.root, "voices", "C01-master.wav");
   writeSilentWav(output, 8);
-  const query = buildVoiceDiscoveryQuery({ language: "zh", count: 3, title: "御姐" });
+  const query = buildVoiceDiscoveryQuery({ language: "en", count: 3, title: "confident mature woman" });
   assert.match(query, /page_size=3/);
   assert.match(query, /title=/);
-  const tts = buildFishTtsRequest({ model: "s2.1-pro-free", text: "我知道事情没有这么简单，但我们仍然要把真相说清楚。", referenceId: "fish-private-C01" });
+  const tts = buildFishTtsRequest({ model: "s2.1-pro-free", text: "I know this is not that simple, but we still need to make the truth clear.", referenceId: "fish-private-C01" });
   assert.equal(tts.licenseScope, "evaluation-only");
-  assert.throws(() => buildFishTtsRequest({ model: "s2.1-pro-free", text: "测试", referenceId: "fish-private-C01", licenseScope: "commercial" }), /evaluation-only/);
+  assert.throws(() => buildFishTtsRequest({ model: "s2.1-pro-free", text: "Test", referenceId: "fish-private-C01", licenseScope: "commercial" }), /evaluation-only/);
   const streaming = fs.readFileSync(output);
   streaming.writeUInt32LE(0xffffff00, 4);
   streaming.writeUInt32LE(0xffffff00, 40);
@@ -460,7 +460,7 @@ test("Fish free voice becomes an evaluation-only H3-ready master", () => {
   assert.equal(asset.provider, "fish-audio");
   assert.equal(asset.providerModel, "s2.1-pro-free");
   assert.equal(asset.licenseScope, "evaluation-only");
-  approveVoiceAsset(fixture.manifest, fixture.manifestPath, asset.voiceAssetId, "user", "仅批准样片评估");
+  approveVoiceAsset(fixture.manifest, fixture.manifestPath, asset.voiceAssetId, "user", "Approved for pilot evaluation only");
   const result = validateManifest(fixture.manifest, fixture.manifestPath);
   assert.equal(result.ok, true, JSON.stringify(result.errors, null, 2));
   assert(result.warnings.some((item) => item.code === "VOICE_EVALUATION_ONLY"));

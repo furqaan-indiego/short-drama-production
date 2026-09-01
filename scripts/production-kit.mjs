@@ -68,8 +68,8 @@ function slugify(value) {
 
 function formatContract(aspectRatio, fps, targetModel, generationResolution) {
   const preset = ASPECT_PRESETS[aspectRatio];
-  if (!preset) throw new Error(`不支持的项目画幅 ${aspectRatio}；可用 ${Object.keys(ASPECT_PRESETS).join(", ")}`);
-  if (!GENERATION_RESOLUTIONS.has(generationResolution)) throw new Error(`generationResolution 必须为 768P 或 2K`);
+  if (!preset) throw new Error(`Unsupported project aspect ratio ${aspectRatio}; available: ${Object.keys(ASPECT_PRESETS).join(", ")}`);
+  if (!GENERATION_RESOLUTIONS.has(generationResolution)) throw new Error(`generationResolution must be 768P or 2K`);
   return { aspectRatio, fps, episodeCount: null, episodeSeconds: null, targetModel, generationResolution, ...structuredClone(preset) };
 }
 
@@ -87,7 +87,7 @@ function issue(list, code, at, message) {
 }
 
 function requireText(errors, value, at, label) {
-  if (!isFilled(value)) issue(errors, "REQUIRED_TEXT", at, `${label}不能为空`);
+  if (!isFilled(value)) issue(errors, "REQUIRED_TEXT", at, `${label} cannot be empty`);
 }
 
 function optionValue(args, name, fallback = undefined) {
@@ -97,7 +97,7 @@ function optionValue(args, name, fallback = undefined) {
 
 function requireOption(args, name) {
   const result = optionValue(args, name);
-  if (!isFilled(result)) throw new Error(`缺少参数 ${name}`);
+  if (!isFilled(result)) throw new Error(`Missing required parameter ${name}`);
   return result;
 }
 
@@ -108,12 +108,12 @@ function csv(value) {
 
 function parseNumber(value, label) {
   const result = Number(value);
-  if (!Number.isFinite(result)) throw new Error(`${label} 必须是数字`);
+  if (!Number.isFinite(result)) throw new Error(`${label} must be a number`);
   return result;
 }
 
 function ensureId(value, label) {
-  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value)) throw new Error(`${label} 只能包含字母、数字、点、下划线和短横线`);
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value)) throw new Error(`${label} can contain only letters, numbers, dots, underscores, and hyphens`);
   return value;
 }
 
@@ -197,7 +197,7 @@ function nextApprovalId(manifest) {
 }
 
 export function createManifest({ title, sourcePath, manifestPath, aspectRatio = "16:9", fps = 24, targetModel = "MiniMax-H3", generationResolution = "768P", videoProvider = "minimax-official" }) {
-  if (!VIDEO_PROVIDERS.has(videoProvider)) throw new Error(`videoProvider 必须为 ${[...VIDEO_PROVIDERS].join(" 或 ")}`);
+  if (!VIDEO_PROVIDERS.has(videoProvider)) throw new Error(`videoProvider must be ${[...VIDEO_PROVIDERS].join(" or ")}`);
   const timestamp = now();
   const sourceStored = storedPath(manifestPath, sourcePath);
   const sourceHash = hashPath(path.resolve(sourcePath), manifestPath);
@@ -239,7 +239,7 @@ export function createManifest({ title, sourcePath, manifestPath, aspectRatio = 
     artifacts: [sourceArtifact],
     voiceAssets: [],
     jobs: [],
-    approvals: sourceHash ? [{ approvalId: "APR-0001", artifactId: "source", by: "user", at: timestamp, sha256: sourceHash, dependencyHashes: {}, note: "项目输入源" }] : [],
+    approvals: sourceHash ? [{ approvalId: "APR-0001", artifactId: "source", by: "user", at: timestamp, sha256: sourceHash, dependencyHashes: {}, note: "Project input source" }] : [],
     risks: []
   };
 }
@@ -265,8 +265,8 @@ export function setProjectFormat(manifest, input = {}) {
       severity: "high",
       stage: "ingest",
       status: "open",
-      description: `项目画幅/输出规格已改为 ${aspectRatio} ${fps}fps ${generationResolution}，所有非源制品需要重新对账`,
-      mitigation: "重新生成或复审导演、分镜、关键帧、视频和剪辑后关闭本风险"
+      description: `Project aspect ratio/output specification changed to ${aspectRatio} ${fps}fps ${generationResolution}; reconcile every non-source artifact again`,
+      mitigation: "Regenerate or re-review the director package, storyboard, keyframes, video, and edit before closing this risk"
     });
   }
   return { changed, format: manifest.project.format };
@@ -274,7 +274,7 @@ export function setProjectFormat(manifest, input = {}) {
 
 export function registerArtifact(manifest, manifestPath, input) {
   const id = ensureId(input.id, "artifact id");
-  if (!ARTIFACT_KINDS.has(input.kind)) throw new Error(`无效 artifact kind: ${input.kind}`);
+  if (!ARTIFACT_KINDS.has(input.kind)) throw new Error(`Invalid artifact kind: ${input.kind}`);
   const targetStored = storedPath(manifestPath, input.path);
   const targetHash = hashPath(path.resolve(input.path), manifestPath);
   const existingIndex = arrayOf(manifest.artifacts).findIndex((artifact) => artifact.id === id);
@@ -301,16 +301,16 @@ export function registerArtifact(manifest, manifestPath, input) {
 export function approveArtifact(manifest, manifestPath, id, by, note = "") {
   const artifacts = artifactMap(manifest);
   const artifact = artifacts.get(id);
-  if (!artifact) throw new Error(`找不到 artifact: ${id}`);
+  if (!artifact) throw new Error(`Artifact not found: ${id}`);
   const hash = currentArtifactHash(manifestPath, artifact);
-  if (!hash) throw new Error(`artifact 文件不存在: ${artifact.path}`);
+  if (!hash) throw new Error(`Artifact file does not exist: ${artifact.path}`);
   const dependencyHashes = {};
   for (const dependencyId of arrayOf(artifact.dependsOn)) {
     const dependency = artifacts.get(dependencyId);
-    if (!dependency) throw new Error(`缺少依赖 artifact: ${dependencyId}`);
-    if (dependency.status !== "approved") throw new Error(`依赖 ${dependencyId} 尚未 approved，当前为 ${dependency.status}`);
+    if (!dependency) throw new Error(`Missing dependency artifact: ${dependencyId}`);
+    if (dependency.status !== "approved") throw new Error(`Dependency ${dependencyId} is not approved; current status: ${dependency.status}`);
     const dependencyHash = currentArtifactHash(manifestPath, dependency);
-    if (!dependencyHash || dependencyHash !== dependency.approvedSha256) throw new Error(`依赖 ${dependencyId} 的文件或审批哈希不一致`);
+    if (!dependencyHash || dependencyHash !== dependency.approvedSha256) throw new Error(`Dependency ${dependencyId} file hash does not match its approval hash`);
     dependencyHashes[dependencyId] = dependencyHash;
   }
   artifact.sha256 = hash;
@@ -335,7 +335,7 @@ export function addVoiceAsset(manifest, manifestPath, input) {
     path: targetStored,
     sha256: targetHash,
     approvedSha256: null,
-    language: input.language ?? "zh",
+    language: input.language ?? "en",
     durationSeconds: input.durationSeconds,
     sampleType: input.sampleType ?? "voice-master",
     rights: input.rights ?? "unknown",
@@ -356,11 +356,11 @@ export function addVoiceAsset(manifest, manifestPath, input) {
 
 export function approveVoiceAsset(manifest, manifestPath, id, by, note = "") {
   const asset = voiceMap(manifest).get(id);
-  if (!asset) throw new Error(`找不到 voice asset: ${id}`);
-  if (asset.rights === "unknown") throw new Error(`声音资产 ${id} 的 rights 不能为 unknown`);
-  if (!isNumber(asset.durationSeconds) || asset.durationSeconds < 2 || asset.durationSeconds > 15) throw new Error(`声音资产 ${id} 时长必须为 2–15 秒`);
+  if (!asset) throw new Error(`Voice asset not found: ${id}`);
+  if (asset.rights === "unknown") throw new Error(`Voice asset ${id} cannot have rights=unknown`);
+  if (!isNumber(asset.durationSeconds) || asset.durationSeconds < 2 || asset.durationSeconds > 15) throw new Error(`Voice asset ${id} duration must be 2–15 seconds`);
   const hash = currentVoiceHash(manifestPath, asset);
-  if (!hash) throw new Error(`声音文件不存在: ${asset.path}`);
+  if (!hash) throw new Error(`Voice file does not exist: ${asset.path}`);
   asset.sha256 = hash;
   asset.approvedSha256 = hash;
   asset.status = "approved";
@@ -404,7 +404,7 @@ export function addJob(manifest, manifestPath, input) {
 }
 
 export function syncJobsFromStoryboard(manifest, manifestPath, board, boardPath, input = {}) {
-  if (board?.aspectRatio !== manifest.project?.format?.aspectRatio) throw new Error(`storyboard 画幅 ${board?.aspectRatio ?? "缺失"} 与 production ${manifest.project?.format?.aspectRatio ?? "缺失"} 不一致`);
+  if (board?.aspectRatio !== manifest.project?.format?.aspectRatio) throw new Error(`Storyboard aspect ratio ${board?.aspectRatio ?? "missing"} does not match production ${manifest.project?.format?.aspectRatio ?? "missing"}`);
   const dependsOn = input.dependsOn ?? [];
   const outputDir = path.resolve(input.outputDir ?? path.join(path.dirname(manifestPath), "video"));
   const synced = [];
@@ -413,7 +413,7 @@ export function syncJobsFromStoryboard(manifest, manifestPath, board, boardPath,
     sequence += 1;
     const jobId = input.prefix ? `${input.prefix}-${segment.id}` : `H3-${segment.id}`;
     const existing = arrayOf(manifest.jobs).find((job) => job.jobId === jobId);
-    if (existing && new Set(["submitted", "running", "succeeded"]).has(existing.status)) throw new Error(`拒绝覆盖已提交/完成任务 ${jobId}`);
+    if (existing && new Set(["submitted", "running", "succeeded"]).has(existing.status)) throw new Error(`Refusing to overwrite submitted/completed job ${jobId}`);
     const promptAbsolute = path.resolve(path.dirname(boardPath), segment.promptPath);
     const outputAbsolute = path.join(outputDir, `${segment.id}.mp4`);
     const job = addJob(manifest, manifestPath, {
@@ -446,10 +446,10 @@ export function syncJobsFromStoryboard(manifest, manifestPath, board, boardPath,
 
 export function quantizeH3Duration(seconds, policy = "nearest") {
   const source = Number(seconds);
-  if (!Number.isFinite(source) || source <= 0 || source > 15) throw new Error(`H3 源时长必须在 0–15 秒，收到 ${seconds}`);
+  if (!Number.isFinite(source) || source <= 0 || source > 15) throw new Error(`H3 source duration must be 0–15 seconds; received ${seconds}`);
   const quantizers = { nearest: Math.round, floor: Math.floor, ceil: Math.ceil };
   const quantize = quantizers[policy];
-  if (!quantize) throw new Error("duration policy 必须为 nearest、floor 或 ceil");
+  if (!quantize) throw new Error("duration policy must be nearest, floor, or ceil");
   return Math.max(4, Math.min(15, quantize(source)));
 }
 
@@ -464,36 +464,36 @@ function resolvePackageEntryPath(value, packagePath, manifestPath) {
 }
 
 export function syncJobsFromH3Package(manifest, manifestPath, packageManifest, packagePath, input = {}) {
-  if (!Array.isArray(packageManifest)) throw new Error("H3 package manifest 根节点必须是数组");
+  if (!Array.isArray(packageManifest)) throw new Error("H3 package manifest root must be an array");
   const selected = arrayOf(input.segments);
-  if (!selected.length) throw new Error("必须显式指定至少一个 --segments；默认不批量同步付费任务");
-  if (selected.length > (manifest.policies?.pilotJobs ?? 1) && !input.allowBatch) throw new Error(`一次最多同步 ${manifest.policies?.pilotJobs ?? 1} 个样片任务；批量需显式 --allow-batch`);
+  if (!selected.length) throw new Error("Explicitly specify at least one --segments; paid jobs are not batch-synced by default");
+  if (selected.length > (manifest.policies?.pilotJobs ?? 1) && !input.allowBatch) throw new Error(`Can sync at most ${manifest.policies?.pilotJobs ?? 1} pilot job(s) at once; batches require explicit --allow-batch`);
   const bySegment = new Map(packageManifest.map((item) => [item?.segment, item]));
   const provider = input.provider ?? manifest.policies?.videoProvider ?? "minimax-official";
-  if (!VIDEO_PROVIDERS.has(provider)) throw new Error(`provider 必须为 ${[...VIDEO_PROVIDERS].join(" 或 ")}`);
+  if (!VIDEO_PROVIDERS.has(provider)) throw new Error(`provider must be ${[...VIDEO_PROVIDERS].join(" or ")}`);
   const outputDir = path.resolve(input.outputDir ?? path.join(path.dirname(manifestPath), "video"));
   const durationPolicy = input.durationPolicy ?? "nearest";
   const dependsOn = input.dependsOn ?? [];
   const synced = [];
   for (const segmentId of selected) {
     const item = bySegment.get(segmentId);
-    if (!item) throw new Error(`H3 package 中找不到片段 ${segmentId}`);
-    if (arrayOf(item.missing).length) throw new Error(`${segmentId} 仍缺 ${arrayOf(item.missing).length} 张参考图，拒绝建立投产任务`);
+    if (!item) throw new Error(`Segment ${segmentId} was not found in the H3 package`);
+    if (arrayOf(item.missing).length) throw new Error(`${segmentId} is still missing ${arrayOf(item.missing).length} reference image(s); refusing to create a production job`);
     const pictures = arrayOf(item.pictures);
-    if (!pictures.length || pictures.length > 9) throw new Error(`${segmentId} 参考图数量必须为 1–9 张`);
+    if (!pictures.length || pictures.length > 9) throw new Error(`${segmentId} reference-image count must be 1–9`);
     const promptAbsolute = resolvePackageEntryPath(item.prompt, packagePath, manifestPath);
-    if (!fs.existsSync(promptAbsolute)) throw new Error(`${segmentId} 提示词不存在: ${promptAbsolute}`);
+    if (!fs.existsSync(promptAbsolute)) throw new Error(`${segmentId} prompt does not exist: ${promptAbsolute}`);
     const pictureAbsolutes = pictures.map((picture) => resolvePackageEntryPath(picture, packagePath, manifestPath));
-    for (const picture of pictureAbsolutes) if (!fs.existsSync(picture)) throw new Error(`${segmentId} 参考图不存在: ${picture}`);
+    for (const picture of pictureAbsolutes) if (!fs.existsSync(picture)) throw new Error(`${segmentId} reference image does not exist: ${picture}`);
     const sourceDuration = Number(item.seconds);
     const duration = input.duration == null ? quantizeH3Duration(sourceDuration, durationPolicy) : quantizeH3Duration(input.duration, "nearest");
     const match = /^E(\d+)-/.exec(segmentId);
-    if (!match) throw new Error(`片段号必须采用 E01-01 格式: ${segmentId}`);
+    if (!match) throw new Error(`Segment ID must use the E01-01 format: ${segmentId}`);
     const prompt = fs.readFileSync(promptAbsolute, "utf8");
     const hasDialogue = /<d>[\s\S]*?<\/d>/i.test(prompt);
     const jobId = `${input.prefix ?? (provider === "compshare" ? "H3CS" : "H3")}-${segmentId}`;
     const existing = arrayOf(manifest.jobs).find((job) => job.jobId === jobId);
-    if (existing && new Set(["submitted", "running", "succeeded"]).has(existing.status)) throw new Error(`拒绝覆盖已提交/完成任务 ${jobId}`);
+    if (existing && new Set(["submitted", "running", "succeeded"]).has(existing.status)) throw new Error(`Refusing to overwrite submitted/completed job ${jobId}`);
     const job = addJob(manifest, manifestPath, {
       jobId,
       episode: Number(match[1]),
@@ -527,17 +527,17 @@ function relativeToFile(fromFile, targetFile) {
 
 export function exportCompShareJob(manifest, manifestPath, id, outPath, input = {}) {
   const job = arrayOf(manifest.jobs).find((item) => item.jobId === id);
-  if (!job) throw new Error(`找不到 job: ${id}`);
-  if (job.provider !== "compshare") throw new Error(`${id} 的 provider 不是 compshare`);
+  if (!job) throw new Error(`Job not found: ${id}`);
+  if (job.provider !== "compshare") throw new Error(`${id} provider is not compshare`);
   const images = arrayOf(job.references).filter((ref) => ref?.role === "reference_image");
-  if (!images.length || images.length > 9) throw new Error(`${id} 需要 1–9 张 reference_image`);
-  if (arrayOf(job.references).some((ref) => ref?.role !== "reference_image")) throw new Error("当前 CompShare 客户端只导出参考图任务；声音/视频参考需使用对应适配器");
+  if (!images.length || images.length > 9) throw new Error(`${id} requires 1–9 reference_image items`);
+  if (arrayOf(job.references).some((ref) => ref?.role !== "reference_image")) throw new Error("The current CompShare client exports reference-image jobs only; use the appropriate adapter for audio/video references");
   const promptAbsolute = resolveStoredPath(manifestPath, job.promptPath);
   const outputAbsolute = resolveStoredPath(manifestPath, job.outputPath);
-  if (!promptAbsolute || !fs.existsSync(promptAbsolute)) throw new Error(`提示词不存在: ${job.promptPath}`);
+  if (!promptAbsolute || !fs.existsSync(promptAbsolute)) throw new Error(`Prompt does not exist: ${job.promptPath}`);
   const referenceImages = images.map((ref) => {
     const absolute = resolveStoredPath(manifestPath, ref.path);
-    if (!absolute || !fs.existsSync(absolute)) throw new Error(`参考图不存在: ${ref.path}`);
+    if (!absolute || !fs.existsSync(absolute)) throw new Error(`Reference image does not exist: ${ref.path}`);
     return { role: "reference_image", path: relativeToFile(outPath, absolute) };
   });
   const exported = {
@@ -568,24 +568,24 @@ export function exportCompShareJob(manifest, manifestPath, id, outPath, input = 
 
 export function approveJob(manifest, manifestPath, id, by, note = "") {
   const job = arrayOf(manifest.jobs).find((item) => item.jobId === id);
-  if (!job) throw new Error(`找不到 job: ${id}`);
+  if (!job) throw new Error(`Job not found: ${id}`);
   const artifacts = artifactMap(manifest);
   const voices = voiceMap(manifest);
   const inputHashes = {};
   for (const dependencyId of arrayOf(job.dependsOn)) {
     const dependency = artifacts.get(dependencyId);
-    if (!dependency || dependency.status !== "approved") throw new Error(`任务依赖 ${dependencyId} 尚未 approved`);
+    if (!dependency || dependency.status !== "approved") throw new Error(`Job dependency ${dependencyId} is not approved`);
     const dependencyHash = currentArtifactHash(manifestPath, dependency);
-    if (!dependencyHash || dependencyHash !== dependency.approvedSha256) throw new Error(`任务依赖 ${dependencyId} 文件已变化`);
+    if (!dependencyHash || dependencyHash !== dependency.approvedSha256) throw new Error(`Job dependency ${dependencyId} file changed`);
     inputHashes[dependencyId] = dependencyHash;
   }
   const inputVoiceHashes = {};
   for (const speaker of arrayOf(job.speakers)) {
     if (!isFilled(speaker.voiceAssetId)) continue;
     const voice = voices.get(speaker.voiceAssetId);
-    if (!voice || voice.status !== "approved") throw new Error(`任务声音资产 ${speaker.voiceAssetId} 尚未 approved`);
+    if (!voice || voice.status !== "approved") throw new Error(`Job voice asset ${speaker.voiceAssetId} is not approved`);
     const voiceHash = currentVoiceHash(manifestPath, voice);
-    if (!voiceHash || voiceHash !== voice.approvedSha256) throw new Error(`任务声音资产 ${speaker.voiceAssetId} 文件已变化`);
+    if (!voiceHash || voiceHash !== voice.approvedSha256) throw new Error(`Job voice asset ${speaker.voiceAssetId} file changed`);
     inputVoiceHashes[speaker.voiceAssetId] = voiceHash;
   }
   job.inputHashes = inputHashes;
@@ -675,16 +675,16 @@ export function refreshManifest(manifest, manifestPath) {
 
 function validateH3Job(job, index, manifest, manifestPath, errors, warnings) {
   const at = `$.jobs[${index}]`;
-  if (!H3_MODES.has(job.mode)) issue(errors, "JOB_MODE", `${at}.mode`, "H3 mode 枚举无效");
-  if (!Number.isInteger(job.duration) || job.duration < 4 || job.duration > 15) issue(errors, "H3_DURATION", `${at}.duration`, "H3 任务时长必须为 4–15 秒整数");
-  if (!DIALOGUE_ROUTES.has(job.dialogueRoute)) issue(errors, "DIALOGUE_ROUTE", `${at}.dialogueRoute`, "dialogueRoute 枚举无效");
-  if (!GENERATION_RESOLUTIONS.has(job.resolution)) issue(errors, "JOB_RESOLUTION", `${at}.resolution`, "H3 resolution 必须为 768P 或 2K");
-  if (job.ratio !== "adaptive" && !ASPECT_PRESETS[job.ratio]) issue(errors, "JOB_RATIO", `${at}.ratio`, "H3 ratio 枚举无效");
-  if (!VIDEO_PROVIDERS.has(job.provider)) issue(errors, "JOB_PROVIDER", `${at}.provider`, `provider 必须为 ${[...VIDEO_PROVIDERS].join(" 或 ")}`);
-  if (job.useContextIr !== undefined && typeof job.useContextIr !== "boolean") issue(errors, "CONTEXT_IR_TYPE", `${at}.useContextIr`, "useContextIr 必须为布尔值");
+  if (!H3_MODES.has(job.mode)) issue(errors, "JOB_MODE", `${at}.mode`, "Invalid H3 mode enum");
+  if (!Number.isInteger(job.duration) || job.duration < 4 || job.duration > 15) issue(errors, "H3_DURATION", `${at}.duration`, "H3 job duration must be an integer from 4–15 seconds");
+  if (!DIALOGUE_ROUTES.has(job.dialogueRoute)) issue(errors, "DIALOGUE_ROUTE", `${at}.dialogueRoute`, "Invalid dialogueRoute enum");
+  if (!GENERATION_RESOLUTIONS.has(job.resolution)) issue(errors, "JOB_RESOLUTION", `${at}.resolution`, "H3 resolution must be 768P or 2K");
+  if (job.ratio !== "adaptive" && !ASPECT_PRESETS[job.ratio]) issue(errors, "JOB_RATIO", `${at}.ratio`, "Invalid H3 ratio enum");
+  if (!VIDEO_PROVIDERS.has(job.provider)) issue(errors, "JOB_PROVIDER", `${at}.provider`, `provider must be ${[...VIDEO_PROVIDERS].join(" or ")}`);
+  if (job.useContextIr !== undefined && typeof job.useContextIr !== "boolean") issue(errors, "CONTEXT_IR_TYPE", `${at}.useContextIr`, "useContextIr must be a boolean");
   const contextIrPolicy = manifest.policies?.contextIrPolicy ?? "pilot";
-  if (contextIrPolicy === "off" && job.useContextIr === true) issue(errors, "CONTEXT_IR_POLICY", `${at}.useContextIr`, "项目策略为 off，不允许启用 Context-IR");
-  if (contextIrPolicy === "on" && job.useContextIr !== true) issue(warnings, "CONTEXT_IR_POLICY", `${at}.useContextIr`, "项目策略为 on，但该任务未显式启用 Context-IR");
+  if (contextIrPolicy === "off" && job.useContextIr === true) issue(errors, "CONTEXT_IR_POLICY", `${at}.useContextIr`, "Project policy is off; Context-IR cannot be enabled");
+  if (contextIrPolicy === "on" && job.useContextIr !== true) issue(warnings, "CONTEXT_IR_POLICY", `${at}.useContextIr`, "Project policy is on, but this job does not explicitly enable Context-IR");
   const refs = arrayOf(job.references);
   const byRole = (role) => refs.filter((ref) => ref?.role === role);
   const images = byRole("reference_image");
@@ -695,85 +695,85 @@ function validateH3Job(job, index, manifest, manifestPath, errors, warnings) {
   refs.forEach((ref, refIndex) => {
     const refAt = `${at}.references[${refIndex}]`;
     if (!isObject(ref)) {
-      issue(errors, "REFERENCE_TYPE", refAt, "reference 必须是对象");
+      issue(errors, "REFERENCE_TYPE", refAt, "reference must be an object");
       return;
     }
     requireText(errors, ref.refId, `${refAt}.refId`, "refId");
-    if (!REFERENCE_ROLES.has(ref.role)) issue(errors, "REFERENCE_ROLE", `${refAt}.role`, "reference role 枚举无效");
-    if (Boolean(isFilled(ref.path)) === Boolean(isFilled(ref.url))) issue(errors, "REFERENCE_SOURCE", refAt, "reference 必须且只能提供 path 或 url 之一");
-    if (isFilled(ref.url) && !/^https?:\/\//i.test(ref.url)) issue(errors, "REFERENCE_URL", `${refAt}.url`, "reference url 必须为 HTTP(S)");
+    if (!REFERENCE_ROLES.has(ref.role)) issue(errors, "REFERENCE_ROLE", `${refAt}.role`, "Invalid reference role enum");
+    if (Boolean(isFilled(ref.path)) === Boolean(isFilled(ref.url))) issue(errors, "REFERENCE_SOURCE", refAt, "reference must provide exactly one of path or url");
+    if (isFilled(ref.url) && !/^https?:\/\//i.test(ref.url)) issue(errors, "REFERENCE_URL", `${refAt}.url`, "reference url must be HTTP(S)");
     if (ref.role === "reference_audio" || ref.role === "reference_video") {
-      if (!isNumber(ref.durationSeconds) || ref.durationSeconds < 2 || ref.durationSeconds > 15) issue(errors, "REFERENCE_DURATION", `${refAt}.durationSeconds`, "音频/视频参考时长必须为 2–15 秒");
+      if (!isNumber(ref.durationSeconds) || ref.durationSeconds < 2 || ref.durationSeconds > 15) issue(errors, "REFERENCE_DURATION", `${refAt}.durationSeconds`, "Audio/video reference duration must be 2–15 seconds");
     }
-    if (ref.role === "reference_audio" && !AUDIO_RELATIONS.has(ref.relation)) issue(errors, "AUDIO_RELATION", `${refAt}.relation`, "reference_audio 需要有效 relation");
+    if (ref.role === "reference_audio" && !AUDIO_RELATIONS.has(ref.relation)) issue(errors, "AUDIO_RELATION", `${refAt}.relation`, "reference_audio requires a valid relation");
   });
 
-  if (images.length > 9) issue(errors, "H3_IMAGE_COUNT", `${at}.references`, "H3 参考图最多 9 张");
-  if (videos.length > 3) issue(errors, "H3_VIDEO_COUNT", `${at}.references`, "H3 参考视频最多 3 条");
-  if (audios.length > 3) issue(errors, "H3_AUDIO_COUNT", `${at}.references`, "H3 参考音频最多 3 条");
-  if (refs.length > 12) issue(errors, "H3_REFERENCE_TOTAL", `${at}.references`, "H3 全部参考文件合计最多 12 个");
+  if (images.length > 9) issue(errors, "H3_IMAGE_COUNT", `${at}.references`, "H3 allows at most 9 reference images");
+  if (videos.length > 3) issue(errors, "H3_VIDEO_COUNT", `${at}.references`, "H3 allows at most 3 reference videos");
+  if (audios.length > 3) issue(errors, "H3_AUDIO_COUNT", `${at}.references`, "H3 allows at most 3 reference-audio clips");
+  if (refs.length > 12) issue(errors, "H3_REFERENCE_TOTAL", `${at}.references`, "H3 allows at most 12 reference files in total");
   const videoSeconds = videos.reduce((sum, ref) => sum + (isNumber(ref.durationSeconds) ? ref.durationSeconds : 0), 0);
   const audioSeconds = audios.reduce((sum, ref) => sum + (isNumber(ref.durationSeconds) ? ref.durationSeconds : 0), 0);
-  if (videoSeconds > 15) issue(errors, "H3_VIDEO_SECONDS", `${at}.references`, "H3 参考视频总时长最多 15 秒");
-  if (audioSeconds > 15) issue(errors, "H3_AUDIO_SECONDS", `${at}.references`, "H3 参考音频总时长最多 15 秒");
-  if (audios.length > 0 && images.length + videos.length === 0) issue(errors, "H3_AUDIO_ONLY", `${at}.references`, "H3 参考音频必须同时配合参考图或参考视频");
+  if (videoSeconds > 15) issue(errors, "H3_VIDEO_SECONDS", `${at}.references`, "H3 reference-video total duration is at most 15 seconds");
+  if (audioSeconds > 15) issue(errors, "H3_AUDIO_SECONDS", `${at}.references`, "H3 reference-audio total duration is at most 15 seconds");
+  if (audios.length > 0 && images.length + videos.length === 0) issue(errors, "H3_AUDIO_ONLY", `${at}.references`, "H3 reference audio must be paired with a reference image or video");
 
   const hasReference = images.length + videos.length + audios.length > 0;
   const hasFrame = firstFrames.length + lastFrames.length > 0;
-  if (hasReference && hasFrame) issue(errors, "H3_MODE_MIX", `${at}.references`, "H3 参考模式与首帧/尾帧模式互斥");
-  if (job.mode === "h3-ref2va" && (!hasReference || hasFrame)) issue(errors, "H3_REF2VA_INPUT", `${at}.mode`, "h3-ref2va 需要参考输入且不能含首尾帧");
-  if (job.mode === "h3-t2va" && refs.length > 0) issue(errors, "H3_T2VA_INPUT", `${at}.references`, "h3-t2va 不应包含参考文件");
-  if (job.mode === "h3-i2va" && (firstFrames.length + lastFrames.length !== 1 || hasReference)) issue(errors, "H3_I2VA_INPUT", `${at}.references`, "h3-i2va 需要且仅需要一个 first_frame 或 last_frame");
-  if (job.mode === "h3-fl2va" && (firstFrames.length !== 1 || lastFrames.length !== 1 || hasReference)) issue(errors, "H3_FL2VA_INPUT", `${at}.references`, "h3-fl2va 需要一张 first_frame 与一张 last_frame");
-  if (new Set(["h3-i2va", "h3-fl2va"]).has(job.mode) && job.ratio !== "adaptive") issue(errors, "H3_FRAME_RATIO", `${at}.ratio`, "首帧/尾帧模式的 ratio 必须为 adaptive，实际画幅由输入图决定");
-  if (job.mode === "h3-ref2va" && job.ratio !== manifest.project?.format?.aspectRatio) issue(errors, "H3_PROJECT_RATIO", `${at}.ratio`, `Ref2VA 任务必须继承项目画幅 ${manifest.project?.format?.aspectRatio}`);
+  if (hasReference && hasFrame) issue(errors, "H3_MODE_MIX", `${at}.references`, "H3 reference mode and first/last-frame mode are mutually exclusive");
+  if (job.mode === "h3-ref2va" && (!hasReference || hasFrame)) issue(errors, "H3_REF2VA_INPUT", `${at}.mode`, "h3-ref2va requires reference input and cannot contain first/last frames");
+  if (job.mode === "h3-t2va" && refs.length > 0) issue(errors, "H3_T2VA_INPUT", `${at}.references`, "h3-t2va should not contain reference files");
+  if (job.mode === "h3-i2va" && (firstFrames.length + lastFrames.length !== 1 || hasReference)) issue(errors, "H3_I2VA_INPUT", `${at}.references`, "h3-i2va requires exactly one first_frame or last_frame");
+  if (job.mode === "h3-fl2va" && (firstFrames.length !== 1 || lastFrames.length !== 1 || hasReference)) issue(errors, "H3_FL2VA_INPUT", `${at}.references`, "h3-fl2va requires one first_frame and one last_frame");
+  if (new Set(["h3-i2va", "h3-fl2va"]).has(job.mode) && job.ratio !== "adaptive") issue(errors, "H3_FRAME_RATIO", `${at}.ratio`, "First/last-frame mode ratio must be adaptive; the input image determines the actual aspect ratio");
+  if (job.mode === "h3-ref2va" && job.ratio !== manifest.project?.format?.aspectRatio) issue(errors, "H3_PROJECT_RATIO", `${at}.ratio`, `Ref2VA job must inherit project aspect ratio ${manifest.project?.format?.aspectRatio}`);
 
   const voices = voiceMap(manifest);
   const refById = new Map(refs.map((ref) => [ref?.refId, ref]));
   const speakers = arrayOf(job.speakers);
   if (job.dialogueRoute === "h3-native-reference") {
-    if (job.mode !== "h3-ref2va") issue(errors, "VOICE_MODE", `${at}.dialogueRoute`, "h3-native-reference 必须使用 h3-ref2va");
-    if (speakers.length === 0) issue(errors, "VOICE_SPEAKERS", `${at}.speakers`, "h3-native-reference 至少需要一位 speaker");
+    if (job.mode !== "h3-ref2va") issue(errors, "VOICE_MODE", `${at}.dialogueRoute`, "h3-native-reference must use h3-ref2va");
+    if (speakers.length === 0) issue(errors, "VOICE_SPEAKERS", `${at}.speakers`, "h3-native-reference requires at least one speaker");
     for (let speakerIndex = 0; speakerIndex < speakers.length; speakerIndex += 1) {
       const speaker = speakers[speakerIndex];
       const speakerAt = `${at}.speakers[${speakerIndex}]`;
       requireText(errors, speaker.characterId, `${speakerAt}.characterId`, "characterId");
-      if (!/^S[1-9][0-9]*$/.test(speaker.speakerId ?? "")) issue(errors, "SPEAKER_ID", `${speakerAt}.speakerId`, "speakerId 必须采用 S1、S2…");
+      if (!/^S[1-9][0-9]*$/.test(speaker.speakerId ?? "")) issue(errors, "SPEAKER_ID", `${speakerAt}.speakerId`, "speakerId must use S1, S2, …");
       const voice = voices.get(speaker.voiceAssetId);
-      if (!voice || voice.status !== "approved") issue(errors, "VOICE_NOT_APPROVED", `${speakerAt}.voiceAssetId`, `声音资产 ${speaker.voiceAssetId ?? ""} 尚未 approved`);
+      if (!voice || voice.status !== "approved") issue(errors, "VOICE_NOT_APPROVED", `${speakerAt}.voiceAssetId`, `Voice asset ${speaker.voiceAssetId ?? ""} is not approved`);
       const audioRef = refById.get(speaker.audioRefId);
-      if (!audioRef || audioRef.role !== "reference_audio" || audioRef.voiceAssetId !== speaker.voiceAssetId) issue(errors, "VOICE_BINDING", `${speakerAt}.audioRefId`, "speaker 必须绑定同一 voiceAssetId 的 reference_audio");
-      if (audioRef && audioRef.relation !== "reference") issue(errors, "VOICE_RELATION", `${speakerAt}.audioRefId`, "声音母版生成新台词时 relation 必须为 reference");
+      if (!audioRef || audioRef.role !== "reference_audio" || audioRef.voiceAssetId !== speaker.voiceAssetId) issue(errors, "VOICE_BINDING", `${speakerAt}.audioRefId`, "speaker must bind a reference_audio with the same voiceAssetId");
+      if (audioRef && audioRef.relation !== "reference") issue(errors, "VOICE_RELATION", `${speakerAt}.audioRefId`, "Voice-master generation of new dialogue requires relation=reference");
     }
   }
 
   if (job.dialogueRoute === "tts-guided-h3") {
-    if (job.mode !== "h3-ref2va" || audios.length === 0) issue(errors, "TTS_GUIDED_INPUT", at, "tts-guided-h3 必须使用含参考音频的 h3-ref2va");
-    if (!audios.some((ref) => new Set(["partially_copy", "fully_copy"]).has(ref.relation))) issue(errors, "TTS_GUIDED_RELATION", `${at}.references`, "tts-guided-h3 至少一条音频应为 partially_copy 或 fully_copy");
+    if (job.mode !== "h3-ref2va" || audios.length === 0) issue(errors, "TTS_GUIDED_INPUT", at, "tts-guided-h3 must use h3-ref2va with reference audio");
+    if (!audios.some((ref) => new Set(["partially_copy", "fully_copy"]).has(ref.relation))) issue(errors, "TTS_GUIDED_RELATION", `${at}.references`, "tts-guided-h3 needs at least one audio relation of partially_copy or fully_copy");
   }
 
   const promptFile = resolveStoredPath(manifestPath, job.promptPath);
   if (promptFile && fs.existsSync(promptFile) && fs.statSync(promptFile).isFile()) {
     const prompt = fs.readFileSync(promptFile, "utf8");
     const hasDialogueBlock = /<d>[\s\S]*?<\/d>/i.test(prompt);
-    if (new Set(["tts-post", "silent"]).has(job.dialogueRoute) && hasDialogueBlock) issue(errors, "DUPLICATE_DIALOGUE", `${at}.promptPath`, `${job.dialogueRoute} 不得在 H3 提示词中包含 <d> 对白`);
-    if (new Set(["h3-native-reference", "h3-native-free", "tts-guided-h3"]).has(job.dialogueRoute) && speakers.length > 0 && !hasDialogueBlock) issue(warnings, "DIALOGUE_BLOCK_MISSING", `${at}.promptPath`, "存在说话人但提示词没有 <d> 对白块");
+    if (new Set(["tts-post", "silent"]).has(job.dialogueRoute) && hasDialogueBlock) issue(errors, "DUPLICATE_DIALOGUE", `${at}.promptPath`, `${job.dialogueRoute} must not include <d> dialogue in the H3 prompt`);
+    if (new Set(["h3-native-reference", "h3-native-free", "tts-guided-h3"]).has(job.dialogueRoute) && speakers.length > 0 && !hasDialogueBlock) issue(warnings, "DIALOGUE_BLOCK_MISSING", `${at}.promptPath`, "Speakers exist but the prompt has no <d> dialogue block");
   } else if (isFilled(job.promptPath)) {
-    issue(errors, "PROMPT_MISSING", `${at}.promptPath`, `提示词文件不存在: ${job.promptPath}`);
+    issue(errors, "PROMPT_MISSING", `${at}.promptPath`, `Prompt file does not exist: ${job.promptPath}`);
   }
 
-  if (job.musicRoute === "h3-native") issue(warnings, "NATIVE_MUSIC_CONTINUITY", `${at}.musicRoute`, "多片段 H3 原生配乐可能产生连续性问题，系列短剧建议 post");
-  if (new Set(["submitted", "running", "succeeded"]).has(job.status) && !job.costApproved) issue(errors, "COST_APPROVAL", `${at}.costApproved`, "已提交或完成的付费任务必须有成本授权");
+  if (job.musicRoute === "h3-native") issue(warnings, "NATIVE_MUSIC_CONTINUITY", `${at}.musicRoute`, "Multi-segment H3 native music can create continuity issues; use post for episodic short dramas");
+  if (new Set(["submitted", "running", "succeeded"]).has(job.status) && !job.costApproved) issue(errors, "COST_APPROVAL", `${at}.costApproved`, "Submitted or completed paid jobs require cost approval");
   if (job.status === "succeeded") {
     const output = resolveStoredPath(manifestPath, job.outputPath);
-    if (!output || !fs.existsSync(output)) issue(errors, "OUTPUT_MISSING", `${at}.outputPath`, "succeeded 任务缺少输出文件");
+    if (!output || !fs.existsSync(output)) issue(errors, "OUTPUT_MISSING", `${at}.outputPath`, "Succeeded job is missing an output file");
   }
   if (new Set(["approved", "submitted", "running", "succeeded"]).has(job.status)) {
     const artifacts = artifactMap(manifest);
     for (const dependencyId of arrayOf(job.dependsOn)) {
       const dependency = artifacts.get(dependencyId);
-      if (!dependency || dependency.status !== "approved") issue(errors, "JOB_DEPENDENCY", `${at}.dependsOn`, `任务依赖 ${dependencyId} 尚未 approved`);
-      else if (job.inputHashes?.[dependencyId] !== dependency.sha256) issue(errors, "JOB_INPUT_HASH", `${at}.inputHashes`, `任务的 ${dependencyId} 输入哈希已过期`);
+      if (!dependency || dependency.status !== "approved") issue(errors, "JOB_DEPENDENCY", `${at}.dependsOn`, `Job dependency ${dependencyId} is not approved`);
+      else if (job.inputHashes?.[dependencyId] !== dependency.sha256) issue(errors, "JOB_INPUT_HASH", `${at}.inputHashes`, `Job ${dependencyId} input hash is stale`);
     }
   }
 }
@@ -783,34 +783,34 @@ export function validateManifest(manifest, manifestPath) {
   const warnings = [];
   const stats = { artifacts: 0, approvedArtifacts: 0, staleArtifacts: 0, voiceAssets: 0, jobs: 0, approvedJobs: 0, openRisks: 0 };
   if (!isObject(manifest)) {
-    issue(errors, "ROOT_TYPE", "$", "production.json 根节点必须是对象");
+    issue(errors, "ROOT_TYPE", "$", "production.json root must be an object");
     return { ok: false, errors, warnings, stats };
   }
-  if (manifest.schemaVersion !== "1.0") issue(errors, "SCHEMA_VERSION", "$.schemaVersion", "schemaVersion 必须为 1.0");
-  if (!isObject(manifest.project)) issue(errors, "PROJECT", "$.project", "project 必须是对象");
+  if (manifest.schemaVersion !== "1.0") issue(errors, "SCHEMA_VERSION", "$.schemaVersion", "schemaVersion must be 1.0");
+  if (!isObject(manifest.project)) issue(errors, "PROJECT", "$.project", "project must be an object");
   else {
     requireText(errors, manifest.project.id, "$.project.id", "project.id");
     requireText(errors, manifest.project.title, "$.project.title", "project.title");
     requireText(errors, manifest.project.format?.aspectRatio, "$.project.format.aspectRatio", "aspectRatio");
-    if (!isNumber(manifest.project.format?.fps) || manifest.project.format.fps <= 0) issue(errors, "FPS", "$.project.format.fps", "fps 必须是正数");
+    if (!isNumber(manifest.project.format?.fps) || manifest.project.format.fps <= 0) issue(errors, "FPS", "$.project.format.fps", "fps must be positive");
     const format = manifest.project.format ?? {};
     const preset = ASPECT_PRESETS[format.aspectRatio];
-    if (!preset) issue(errors, "ASPECT_RATIO", "$.project.format.aspectRatio", `项目画幅必须为 ${Object.keys(ASPECT_PRESETS).join(", ")}`);
+    if (!preset) issue(errors, "ASPECT_RATIO", "$.project.format.aspectRatio", `Project aspect ratio must be ${Object.keys(ASPECT_PRESETS).join(", ")}`);
     else {
-      for (const key of ["orientation", "deliveryWidth", "deliveryHeight", "compositionProfile"]) if (format[key] !== preset[key]) issue(errors, "FORMAT_CONTRACT", `$.project.format.${key}`, `${format.aspectRatio} 的 ${key} 必须为 ${preset[key]}`);
-      if (JSON.stringify(format.safeArea) !== JSON.stringify(preset.safeArea)) issue(errors, "FORMAT_SAFE_AREA", "$.project.format.safeArea", `${format.aspectRatio} 安全区合同不匹配`);
+      for (const key of ["orientation", "deliveryWidth", "deliveryHeight", "compositionProfile"]) if (format[key] !== preset[key]) issue(errors, "FORMAT_CONTRACT", `$.project.format.${key}`, `${format.aspectRatio} ${key} must be ${preset[key]}`);
+      if (JSON.stringify(format.safeArea) !== JSON.stringify(preset.safeArea)) issue(errors, "FORMAT_SAFE_AREA", "$.project.format.safeArea", `${format.aspectRatio} safe-area contract does not match`);
     }
-    if (!GENERATION_RESOLUTIONS.has(format.generationResolution)) issue(errors, "GENERATION_RESOLUTION", "$.project.format.generationResolution", "generationResolution 必须为 768P 或 2K");
+    if (!GENERATION_RESOLUTIONS.has(format.generationResolution)) issue(errors, "GENERATION_RESOLUTION", "$.project.format.generationResolution", "generationResolution must be 768P or 2K");
   }
-  if (!isObject(manifest.policies)) issue(errors, "POLICIES", "$.policies", "policies 必须是对象");
+  if (!isObject(manifest.policies)) issue(errors, "POLICIES", "$.policies", "policies must be an object");
   else {
-    if (!DIALOGUE_ROUTES.has(manifest.policies.defaultDialogueRoute)) issue(errors, "DEFAULT_DIALOGUE_ROUTE", "$.policies.defaultDialogueRoute", "默认对白路线无效");
-    if (!VIDEO_PROVIDERS.has(manifest.policies.videoProvider ?? "minimax-official")) issue(errors, "VIDEO_PROVIDER", "$.policies.videoProvider", `视频提供方必须为 ${[...VIDEO_PROVIDERS].join(" 或 ")}`);
-    if (!Number.isInteger(manifest.policies.batchEpisodes) || manifest.policies.batchEpisodes < 1) issue(errors, "BATCH_EPISODES", "$.policies.batchEpisodes", "batchEpisodes 必须为正整数");
-    if (!Number.isInteger(manifest.policies.pilotJobs) || manifest.policies.pilotJobs < 1) issue(errors, "PILOT_JOBS", "$.policies.pilotJobs", "pilotJobs 必须为正整数");
+    if (!DIALOGUE_ROUTES.has(manifest.policies.defaultDialogueRoute)) issue(errors, "DEFAULT_DIALOGUE_ROUTE", "$.policies.defaultDialogueRoute", "Invalid default dialogue route");
+    if (!VIDEO_PROVIDERS.has(manifest.policies.videoProvider ?? "minimax-official")) issue(errors, "VIDEO_PROVIDER", "$.policies.videoProvider", `Video provider must be ${[...VIDEO_PROVIDERS].join(" or ")}`);
+    if (!Number.isInteger(manifest.policies.batchEpisodes) || manifest.policies.batchEpisodes < 1) issue(errors, "BATCH_EPISODES", "$.policies.batchEpisodes", "batchEpisodes must be a positive integer");
+    if (!Number.isInteger(manifest.policies.pilotJobs) || manifest.policies.pilotJobs < 1) issue(errors, "PILOT_JOBS", "$.policies.pilotJobs", "pilotJobs must be a positive integer");
     const contextIrPolicy = manifest.policies.contextIrPolicy ?? "pilot";
-    if (!CONTEXT_IR_POLICIES.has(contextIrPolicy)) issue(errors, "CONTEXT_IR_POLICY", "$.policies.contextIrPolicy", "contextIrPolicy 必须为 off、pilot、selective 或 on");
-    if (manifest.policies.contextIrPolicy === undefined) issue(warnings, "CONTEXT_IR_POLICY_LEGACY", "$.policies.contextIrPolicy", "旧项目未登记 Context-IR 策略，按 pilot 解释");
+    if (!CONTEXT_IR_POLICIES.has(contextIrPolicy)) issue(errors, "CONTEXT_IR_POLICY", "$.policies.contextIrPolicy", "contextIrPolicy must be off, pilot, selective, or on");
+    if (manifest.policies.contextIrPolicy === undefined) issue(warnings, "CONTEXT_IR_POLICY_LEGACY", "$.policies.contextIrPolicy", "Legacy project does not record a Context-IR policy; interpreting as pilot");
   }
 
   const artifacts = arrayOf(manifest.artifacts);
@@ -819,28 +819,28 @@ export function validateManifest(manifest, manifestPath) {
   artifacts.forEach((artifact, index) => {
     const at = `$.artifacts[${index}]`;
     if (!isObject(artifact)) {
-      issue(errors, "ARTIFACT_TYPE", at, "artifact 必须是对象");
+      issue(errors, "ARTIFACT_TYPE", at, "artifact must be an object");
       return;
     }
     requireText(errors, artifact.id, `${at}.id`, "artifact.id");
-    if (artifactIds.has(artifact.id)) issue(errors, "DUPLICATE_ARTIFACT", `${at}.id`, `artifact id ${artifact.id} 重复`);
+    if (artifactIds.has(artifact.id)) issue(errors, "DUPLICATE_ARTIFACT", `${at}.id`, `artifact id ${artifact.id} is duplicated`);
     artifactIds.add(artifact.id);
-    if (!ARTIFACT_KINDS.has(artifact.kind)) issue(errors, "ARTIFACT_KIND", `${at}.kind`, "artifact kind 无效");
+    if (!ARTIFACT_KINDS.has(artifact.kind)) issue(errors, "ARTIFACT_KIND", `${at}.kind`, "Invalid artifact kind");
     requireText(errors, artifact.stage, `${at}.stage`, "artifact.stage");
     requireText(errors, artifact.path, `${at}.path`, "artifact.path");
-    if (!ARTIFACT_STATUSES.has(artifact.status)) issue(errors, "ARTIFACT_STATUS", `${at}.status`, "artifact status 无效");
-    if (!Array.isArray(artifact.dependsOn)) issue(errors, "ARTIFACT_DEPENDS", `${at}.dependsOn`, "dependsOn 必须是数组");
+    if (!ARTIFACT_STATUSES.has(artifact.status)) issue(errors, "ARTIFACT_STATUS", `${at}.status`, "Invalid artifact status");
+    if (!Array.isArray(artifact.dependsOn)) issue(errors, "ARTIFACT_DEPENDS", `${at}.dependsOn`, "dependsOn must be an array");
     if (artifact.status === "approved") {
       stats.approvedArtifacts += 1;
-      if (!isFilled(artifact.approvedSha256) || artifact.sha256 !== artifact.approvedSha256) issue(errors, "ARTIFACT_APPROVAL_HASH", at, "approved artifact 的当前哈希与审批哈希不一致");
+      if (!isFilled(artifact.approvedSha256) || artifact.sha256 !== artifact.approvedSha256) issue(errors, "ARTIFACT_APPROVAL_HASH", at, "Approved artifact current hash does not match approval hash");
     }
     if (artifact.status === "stale") stats.staleArtifacts += 1;
-    if (new Set(["missing", "stale", "blocked", "failed"]).has(artifact.status)) issue(warnings, "ARTIFACT_ATTENTION", at, `${artifact.id} 当前状态为 ${artifact.status}`);
+    if (new Set(["missing", "stale", "blocked", "failed"]).has(artifact.status)) issue(warnings, "ARTIFACT_ATTENTION", at, `${artifact.id} current status: ${artifact.status}`);
   });
   artifacts.forEach((artifact, index) => arrayOf(artifact.dependsOn).forEach((dependency) => {
-    if (!artifactIds.has(dependency)) issue(errors, "UNKNOWN_DEPENDENCY", `$.artifacts[${index}].dependsOn`, `依赖 ${dependency} 不存在`);
+    if (!artifactIds.has(dependency)) issue(errors, "UNKNOWN_DEPENDENCY", `$.artifacts[${index}].dependsOn`, `Dependency ${dependency} does not exist`);
   }));
-  for (const cycle of dependencyCycles(artifacts)) issue(errors, "DEPENDENCY_CYCLE", "$.artifacts", `制品依赖形成环：${cycle.join(" → ")}`);
+  for (const cycle of dependencyCycles(artifacts)) issue(errors, "DEPENDENCY_CYCLE", "$.artifacts", `Artifact dependencies form a cycle: ${cycle.join(" → ")}`);
 
   const voiceIds = new Set();
   const masterByCharacter = new Map();
@@ -848,29 +848,29 @@ export function validateManifest(manifest, manifestPath) {
   arrayOf(manifest.voiceAssets).forEach((asset, index) => {
     const at = `$.voiceAssets[${index}]`;
     if (!isObject(asset)) {
-      issue(errors, "VOICE_TYPE", at, "voice asset 必须是对象");
+      issue(errors, "VOICE_TYPE", at, "voice asset must be an object");
       return;
     }
     requireText(errors, asset.voiceAssetId, `${at}.voiceAssetId`, "voiceAssetId");
-    if (voiceIds.has(asset.voiceAssetId)) issue(errors, "DUPLICATE_VOICE", `${at}.voiceAssetId`, `voiceAssetId ${asset.voiceAssetId} 重复`);
+    if (voiceIds.has(asset.voiceAssetId)) issue(errors, "DUPLICATE_VOICE", `${at}.voiceAssetId`, `voiceAssetId ${asset.voiceAssetId} is duplicated`);
     voiceIds.add(asset.voiceAssetId);
     requireText(errors, asset.characterId, `${at}.characterId`, "characterId");
     requireText(errors, asset.path, `${at}.path`, "voice path");
-    if (!VOICE_TYPES.has(asset.sampleType)) issue(errors, "VOICE_SAMPLE_TYPE", `${at}.sampleType`, "sampleType 无效");
-    if (!RIGHTS.has(asset.rights)) issue(errors, "VOICE_RIGHTS", `${at}.rights`, "rights 无效");
+    if (!VOICE_TYPES.has(asset.sampleType)) issue(errors, "VOICE_SAMPLE_TYPE", `${at}.sampleType`, "Invalid sampleType");
+    if (!RIGHTS.has(asset.rights)) issue(errors, "VOICE_RIGHTS", `${at}.rights`, "Invalid rights");
     const licenseScope = asset.licenseScope ?? (asset.providerModel === "s2.1-pro-free" ? "evaluation-only" : "commercial");
-    if (!asset.licenseScope) issue(warnings, "VOICE_LICENSE_SCOPE_LEGACY", `${at}.licenseScope`, `旧声音资产未登记范围，按 ${licenseScope} 解释；下次重制时补齐`);
-    if (!VOICE_LICENSE_SCOPES.has(licenseScope)) issue(errors, "VOICE_LICENSE_SCOPE", `${at}.licenseScope`, "licenseScope 必须为 evaluation-only 或 commercial");
-    if (asset.providerModel === "s2.1-pro-free" && licenseScope !== "evaluation-only") issue(errors, "FREE_VOICE_SCOPE", `${at}.licenseScope`, "s2.1-pro-free 资产只能是 evaluation-only");
-    if (!VOICE_STATUSES.has(asset.status)) issue(errors, "VOICE_STATUS", `${at}.status`, "voice status 无效");
-    if (!isNumber(asset.durationSeconds) || asset.durationSeconds < 2 || asset.durationSeconds > 15) issue(errors, "VOICE_DURATION", `${at}.durationSeconds`, "声音资产时长必须为 2–15 秒");
+    if (!asset.licenseScope) issue(warnings, "VOICE_LICENSE_SCOPE_LEGACY", `${at}.licenseScope`, `Legacy voice asset has no recorded scope; interpreting as ${licenseScope}; add it when next recreating the asset`);
+    if (!VOICE_LICENSE_SCOPES.has(licenseScope)) issue(errors, "VOICE_LICENSE_SCOPE", `${at}.licenseScope`, "licenseScope must be evaluation-only or commercial");
+    if (asset.providerModel === "s2.1-pro-free" && licenseScope !== "evaluation-only") issue(errors, "FREE_VOICE_SCOPE", `${at}.licenseScope`, "s2.1-pro-free assets can only be evaluation-only");
+    if (!VOICE_STATUSES.has(asset.status)) issue(errors, "VOICE_STATUS", `${at}.status`, "Invalid voice status");
+    if (!isNumber(asset.durationSeconds) || asset.durationSeconds < 2 || asset.durationSeconds > 15) issue(errors, "VOICE_DURATION", `${at}.durationSeconds`, "Voice asset duration must be 2–15 seconds");
     if (asset.status === "approved") {
-      if (asset.rights === "unknown") issue(errors, "VOICE_RIGHTS_UNKNOWN", `${at}.rights`, "approved 声音资产不得 rights=unknown");
-      if (!asset.sha256 || asset.sha256 !== asset.approvedSha256) issue(errors, "VOICE_APPROVAL_HASH", at, "approved 声音资产的哈希不一致");
-      if (licenseScope === "evaluation-only") issue(warnings, "VOICE_EVALUATION_ONLY", at, `${asset.voiceAssetId} 仅可用于内部评估/H3样片，商业交付前需重制`);
+      if (asset.rights === "unknown") issue(errors, "VOICE_RIGHTS_UNKNOWN", `${at}.rights`, "Approved voice assets cannot have rights=unknown");
+      if (!asset.sha256 || asset.sha256 !== asset.approvedSha256) issue(errors, "VOICE_APPROVAL_HASH", at, "Approved voice asset hash does not match");
+      if (licenseScope === "evaluation-only") issue(warnings, "VOICE_EVALUATION_ONLY", at, `${asset.voiceAssetId} can only be used for internal evaluation/H3 pilots; recreate it before commercial delivery`);
     }
     if (asset.sampleType === "voice-master" && asset.status === "approved") {
-      if (masterByCharacter.has(asset.characterId)) issue(warnings, "MULTIPLE_VOICE_MASTERS", at, `${asset.characterId} 有多个 approved voice-master`);
+      if (masterByCharacter.has(asset.characterId)) issue(warnings, "MULTIPLE_VOICE_MASTERS", at, `${asset.characterId} has multiple approved voice masters`);
       masterByCharacter.set(asset.characterId, asset.voiceAssetId);
     }
   });
@@ -880,13 +880,13 @@ export function validateManifest(manifest, manifestPath) {
   arrayOf(manifest.jobs).forEach((job, index) => {
     const at = `$.jobs[${index}]`;
     if (!isObject(job)) {
-      issue(errors, "JOB_TYPE", at, "job 必须是对象");
+      issue(errors, "JOB_TYPE", at, "job must be an object");
       return;
     }
     requireText(errors, job.jobId, `${at}.jobId`, "jobId");
-    if (jobIds.has(job.jobId)) issue(errors, "DUPLICATE_JOB", `${at}.jobId`, `jobId ${job.jobId} 重复`);
+    if (jobIds.has(job.jobId)) issue(errors, "DUPLICATE_JOB", `${at}.jobId`, `jobId ${job.jobId} is duplicated`);
     jobIds.add(job.jobId);
-    if (!JOB_STATUSES.has(job.status)) issue(errors, "JOB_STATUS", `${at}.status`, "job status 无效");
+    if (!JOB_STATUSES.has(job.status)) issue(errors, "JOB_STATUS", `${at}.status`, "Invalid job status");
     if (new Set(["approved", "submitted", "running", "succeeded"]).has(job.status)) stats.approvedJobs += 1;
     validateH3Job(job, index, manifest, manifestPath, errors, warnings);
   });
@@ -894,24 +894,24 @@ export function validateManifest(manifest, manifestPath) {
     if (job.experiment === undefined) return;
     const at = `$.jobs[${index}].experiment`;
     const experiment = isObject(job.experiment) ? job.experiment : {};
-    if (!isObject(job.experiment)) issue(errors, "EXPERIMENT_TYPE", at, "experiment 必须是对象");
+    if (!isObject(job.experiment)) issue(errors, "EXPERIMENT_TYPE", at, "experiment must be an object");
     requireText(errors, experiment.groupId, `${at}.groupId`, "groupId");
     requireText(errors, experiment.baselineJobId, `${at}.baselineJobId`, "baselineJobId");
     requireText(errors, experiment.hypothesis, `${at}.hypothesis`, "hypothesis");
-    if (experiment.baselineJobId === job.jobId) issue(errors, "EXPERIMENT_SELF_BASELINE", `${at}.baselineJobId`, "baselineJobId 不能指向自身");
-    else if (isFilled(experiment.baselineJobId) && !jobIds.has(experiment.baselineJobId)) issue(errors, "EXPERIMENT_BASELINE_UNKNOWN", `${at}.baselineJobId`, `找不到基线任务 ${experiment.baselineJobId}`);
+    if (experiment.baselineJobId === job.jobId) issue(errors, "EXPERIMENT_SELF_BASELINE", `${at}.baselineJobId`, "baselineJobId cannot refer to itself");
+    else if (isFilled(experiment.baselineJobId) && !jobIds.has(experiment.baselineJobId)) issue(errors, "EXPERIMENT_BASELINE_UNKNOWN", `${at}.baselineJobId`, `Baseline job not found: ${experiment.baselineJobId}`);
     const variables = arrayOf(experiment.changedVariables);
-    if (!Array.isArray(experiment.changedVariables) || variables.length === 0) issue(errors, "EXPERIMENT_VARIABLES", `${at}.changedVariables`, "changedVariables 必须是非空数组");
+    if (!Array.isArray(experiment.changedVariables) || variables.length === 0) issue(errors, "EXPERIMENT_VARIABLES", `${at}.changedVariables`, "changedVariables must be a non-empty array");
     variables.forEach((variable, variableIndex) => {
-      if (!EXPERIMENT_VARIABLES.has(variable)) issue(errors, "EXPERIMENT_VARIABLE", `${at}.changedVariables[${variableIndex}]`, `未知实验变量 ${variable}`);
+      if (!EXPERIMENT_VARIABLES.has(variable)) issue(errors, "EXPERIMENT_VARIABLE", `${at}.changedVariables[${variableIndex}]`, `Unknown experiment variable: ${variable}`);
     });
-    if (new Set(variables).size !== variables.length) issue(errors, "EXPERIMENT_VARIABLE_DUPLICATE", `${at}.changedVariables`, "changedVariables 不得重复");
-    if (variables.length > 1) issue(warnings, "EXPERIMENT_CONFOUNDED", `${at}.changedVariables`, `同时改变 ${variables.length} 项，只能比较整体方案，不能作单变量因果结论`);
+    if (new Set(variables).size !== variables.length) issue(errors, "EXPERIMENT_VARIABLE_DUPLICATE", `${at}.changedVariables`, "changedVariables must not contain duplicates");
+    if (variables.length > 1) issue(warnings, "EXPERIMENT_CONFOUNDED", `${at}.changedVariables`, `Changing ${variables.length} variables at once permits only an overall comparison, not single-variable causal conclusions`);
     if (experiment.result !== undefined) {
       const result = isObject(experiment.result) ? experiment.result : {};
-      if (!isObject(experiment.result)) issue(errors, "EXPERIMENT_RESULT_TYPE", `${at}.result`, "result 必须是对象");
-      if (result.winnerJobId !== null && result.winnerJobId !== undefined && !jobIds.has(result.winnerJobId)) issue(errors, "EXPERIMENT_WINNER_UNKNOWN", `${at}.result.winnerJobId`, `找不到胜出任务 ${result.winnerJobId}`);
-      if (result.observedAdvantages !== undefined && !Array.isArray(result.observedAdvantages)) issue(errors, "EXPERIMENT_ADVANTAGES", `${at}.result.observedAdvantages`, "observedAdvantages 必须是数组");
+      if (!isObject(experiment.result)) issue(errors, "EXPERIMENT_RESULT_TYPE", `${at}.result`, "result must be an object");
+      if (result.winnerJobId !== null && result.winnerJobId !== undefined && !jobIds.has(result.winnerJobId)) issue(errors, "EXPERIMENT_WINNER_UNKNOWN", `${at}.result.winnerJobId`, `Winning job not found: ${result.winnerJobId}`);
+      if (result.observedAdvantages !== undefined && !Array.isArray(result.observedAdvantages)) issue(errors, "EXPERIMENT_ADVANTAGES", `${at}.result.observedAdvantages`, "observedAdvantages must be an array");
       requireText(errors, result.causalConclusion, `${at}.result.causalConclusion`, "causalConclusion");
     }
   });
@@ -920,22 +920,22 @@ export function validateManifest(manifest, manifestPath) {
     for (const job of arrayOf(manifest.jobs)) for (const speaker of arrayOf(job.speakers)) {
       const voice = voices.get(speaker.voiceAssetId);
       const scope = voice?.licenseScope ?? (voice?.providerModel === "s2.1-pro-free" ? "evaluation-only" : "commercial");
-      if (scope === "evaluation-only") issue(errors, "DELIVERY_VOICE_SCOPE", "$.voiceAssets", `交付任务 ${job.jobId} 使用评估声音 ${voice.voiceAssetId}；请用付费/商用许可模型重制同一资产`);
+      if (scope === "evaluation-only") issue(errors, "DELIVERY_VOICE_SCOPE", "$.voiceAssets", `Delivery job ${job.jobId} uses evaluation voice ${voice.voiceAssetId}; recreate the same asset with a paid/commercial-license model`);
     }
   }
 
-  if (!Array.isArray(manifest.approvals)) issue(errors, "APPROVALS", "$.approvals", "approvals 必须是数组");
-  if (!Array.isArray(manifest.risks)) issue(errors, "RISKS", "$.risks", "risks 必须是数组");
+  if (!Array.isArray(manifest.approvals)) issue(errors, "APPROVALS", "$.approvals", "approvals must be an array");
+  if (!Array.isArray(manifest.risks)) issue(errors, "RISKS", "$.risks", "risks must be an array");
   arrayOf(manifest.risks).forEach((risk, index) => {
     const at = `$.risks[${index}]`;
     requireText(errors, risk.riskId, `${at}.riskId`, "riskId");
-    if (!RISK_SEVERITIES.has(risk.severity)) issue(errors, "RISK_SEVERITY", `${at}.severity`, "risk severity 无效");
-    if (!RISK_STATUSES.has(risk.status)) issue(errors, "RISK_STATUS", `${at}.status`, "risk status 无效");
+    if (!RISK_SEVERITIES.has(risk.severity)) issue(errors, "RISK_SEVERITY", `${at}.severity`, "Invalid risk severity");
+    if (!RISK_STATUSES.has(risk.status)) issue(errors, "RISK_STATUS", `${at}.status`, "Invalid risk status");
     requireText(errors, risk.description, `${at}.description`, "risk description");
     if (risk.status === "open") stats.openRisks += 1;
   });
   if (arrayOf(manifest.jobs).filter((job) => new Set(["approved", "submitted", "running", "succeeded"]).has(job.status)).length > (manifest.policies?.pilotJobs ?? 1) && !arrayOf(manifest.approvals).some((approval) => approval.scope === "batch-generation")) {
-    issue(warnings, "BATCH_APPROVAL_MISSING", "$.jobs", "批准任务数超过样片上限，但没有 batch-generation 审批记录");
+    issue(warnings, "BATCH_APPROVAL_MISSING", "$.jobs", "Approved-job count exceeds the pilot limit, but no batch-generation approval record exists");
   }
   return { ok: errors.length === 0, errors, warnings, stats };
 }
@@ -946,23 +946,23 @@ function shortHash(value) {
 
 export function statusText(manifest) {
   const lines = [];
-  lines.push(`${manifest.project.title}｜短剧生产状态`, "");
-  lines.push("制品：");
-  for (const artifact of arrayOf(manifest.artifacts)) lines.push(`- ${artifact.id} [${artifact.kind}] ${artifact.status}｜${artifact.episodes}｜${shortHash(artifact.sha256)}｜依赖 ${arrayOf(artifact.dependsOn).join(", ") || "无"}`);
-  lines.push("", "声音资产：");
-  if (!arrayOf(manifest.voiceAssets).length) lines.push("- 尚未登记");
+  lines.push(`${manifest.project.title} | Short Drama Production Status`, "");
+  lines.push("Artifacts:");
+  for (const artifact of arrayOf(manifest.artifacts)) lines.push(`- ${artifact.id} [${artifact.kind}] ${artifact.status} | ${artifact.episodes} | ${shortHash(artifact.sha256)} | Dependencies: ${arrayOf(artifact.dependsOn).join(", ") || "None"}`);
+  lines.push("", "Voice assets:");
+  if (!arrayOf(manifest.voiceAssets).length) lines.push("- None registered");
   else for (const asset of manifest.voiceAssets) lines.push(`- ${asset.voiceAssetId} → ${asset.characterId}｜${asset.sampleType}｜${asset.status}｜${asset.durationSeconds}s｜${asset.rights}/${asset.licenseScope ?? "legacy"}`);
-  lines.push("", "生成任务：");
-  if (!arrayOf(manifest.jobs).length) lines.push("- 尚未登记");
-  else for (const job of manifest.jobs) lines.push(`- ${job.jobId}｜${job.provider}｜E${String(job.episode).padStart(2, "0")} ${job.clipId}｜${job.mode}/${job.dialogueRoute}｜${job.ratio}/${job.resolution}｜${job.duration}s｜${job.status}｜成本授权 ${job.costApproved ? "是" : "否"}`);
+  lines.push("", "Generation jobs:");
+  if (!arrayOf(manifest.jobs).length) lines.push("- None registered");
+  else for (const job of manifest.jobs) lines.push(`- ${job.jobId} | ${job.provider} | E${String(job.episode).padStart(2, "0")} ${job.clipId} | ${job.mode}/${job.dialogueRoute} | ${job.ratio}/${job.resolution} | ${job.duration}s | ${job.status} | Cost approved: ${job.costApproved ? "Yes" : "No"}`);
   const attention = arrayOf(manifest.artifacts).filter((artifact) => new Set(["missing", "stale", "review", "blocked", "failed"]).has(artifact.status));
-  lines.push("", "下一步：");
-  if (attention.length) lines.push(`- 优先处理 ${attention[0].id}（${attention[0].status}）`);
-  else if (!manifest.artifacts.some((artifact) => artifact.kind === "outline")) lines.push("- 运行 novel-outline 并登记 outline 制品");
-  else if (!manifest.artifacts.some((artifact) => artifact.kind === "script")) lines.push("- 进入首批剧本阶段");
-  else if (!manifest.artifacts.some((artifact) => artifact.kind === "director")) lines.push("- 进入 short-drama-director 导演阶段");
-  else if (!manifest.artifacts.some((artifact) => artifact.kind === "storyboard")) lines.push("- 将已批准导演包转换成技术分镜");
-  else lines.push("- 按审批范围推进样片、后期或 QC");
+  lines.push("", "Next step:");
+  if (attention.length) lines.push(`- Prioritize ${attention[0].id} (${attention[0].status})`);
+  else if (!manifest.artifacts.some((artifact) => artifact.kind === "outline")) lines.push("- Run novel-outline and register the outline artifact");
+  else if (!manifest.artifacts.some((artifact) => artifact.kind === "script")) lines.push("- Start the first script batch");
+  else if (!manifest.artifacts.some((artifact) => artifact.kind === "director")) lines.push("- Enter the short-drama-director stage");
+  else if (!manifest.artifacts.some((artifact) => artifact.kind === "storyboard")) lines.push("- Convert the approved director package into a technical storyboard");
+  else lines.push("- Advance pilot, post-production, or QC according to the approval scope");
   return `${lines.join("\n")}\n`;
 }
 
@@ -972,28 +972,28 @@ function escapeCell(value) {
 
 export function renderManifest(manifest, manifestPath = "production.json") {
   const validation = validateManifest(manifest, manifestPath);
-  const lines = [`# ${manifest.project.title}｜短剧生产报告`, ""];
-  lines.push(`- 项目 ID：${manifest.project.id}`, `- 画幅：${manifest.project.format.aspectRatio}｜${manifest.project.format.orientation}｜${manifest.project.format.deliveryWidth}×${manifest.project.format.deliveryHeight}｜${manifest.project.format.fps} fps`, `- 构图配置：${manifest.project.format.compositionProfile}｜生成分辨率 ${manifest.project.format.generationResolution}`, `- 目标模型：${manifest.project.format.targetModel}`, `- 视频提供方：${manifest.policies.videoProvider ?? "minimax-official"}`, `- 默认对白：${manifest.policies.defaultDialogueRoute}`, `- 更新：${manifest.project.updatedAt}`, "");
-  lines.push("## 阶段制品", "", "| ID | 阶段 | 类型 | 集数 | 状态 | 当前哈希 | 依赖 |", "|---|---|---|---|---|---|---|");
+  const lines = [`# ${manifest.project.title} | Short Drama Production Report`, ""];
+  lines.push(`- Project ID: ${manifest.project.id}`, `- Aspect ratio: ${manifest.project.format.aspectRatio} | ${manifest.project.format.orientation} | ${manifest.project.format.deliveryWidth}×${manifest.project.format.deliveryHeight} | ${manifest.project.format.fps} fps`, `- Composition profile: ${manifest.project.format.compositionProfile} | Generation resolution: ${manifest.project.format.generationResolution}`, `- Target model: ${manifest.project.format.targetModel}`, `- Video provider: ${manifest.policies.videoProvider ?? "minimax-official"}`, `- Default dialogue: ${manifest.policies.defaultDialogueRoute}`, `- Updated: ${manifest.project.updatedAt}`, "");
+  lines.push("## Stage artifacts", "", "| ID | Stage | Type | Episodes | Status | Current hash | Dependencies |", "|---|---|---|---|---|---|---|");
   for (const artifact of arrayOf(manifest.artifacts)) lines.push(`| ${escapeCell(artifact.id)} | ${escapeCell(artifact.stage)} | ${escapeCell(artifact.kind)} | ${escapeCell(artifact.episodes)} | ${escapeCell(artifact.status)} | ${shortHash(artifact.sha256)} | ${escapeCell(arrayOf(artifact.dependsOn).join(", "))} |`);
-  lines.push("", "## 声音资产", "");
-  if (!arrayOf(manifest.voiceAssets).length) lines.push("尚未登记。", "");
+  lines.push("", "## Voice assets", "");
+  if (!arrayOf(manifest.voiceAssets).length) lines.push("None registered.", "");
   else {
-    lines.push("| 声音 ID | 角色 | 类型 | 时长 | 来源模型 | 权利/范围 | 状态 |", "|---|---|---|---|---|---|---|");
+    lines.push("| Voice ID | Character | Type | Duration | Source model | Rights/scope | Status |", "|---|---|---|---|---|---|---|");
     for (const asset of manifest.voiceAssets) lines.push(`| ${escapeCell(asset.voiceAssetId)} | ${escapeCell(asset.characterId)} | ${escapeCell(asset.sampleType)} | ${asset.durationSeconds}s | ${escapeCell(asset.providerModel ?? asset.provider ?? "manual")} | ${escapeCell(`${asset.rights}/${asset.licenseScope}`)} | ${escapeCell(asset.status)} |`);
     lines.push("");
   }
-  lines.push("## H3 / 生成任务", "");
-  if (!arrayOf(manifest.jobs).length) lines.push("尚未登记。", "");
+  lines.push("## H3 / Generation jobs", "");
+  if (!arrayOf(manifest.jobs).length) lines.push("None registered.", "");
   else {
-    lines.push("| 任务 | 提供方 | 集/片段 | 模式 | 画幅/清晰度 | 对白 | 时长 | 状态 | 成本授权 | QC |", "|---|---|---|---|---|---|---|---|---|---|");
-    for (const job of manifest.jobs) lines.push(`| ${escapeCell(job.jobId)} | ${escapeCell(job.provider)} | E${String(job.episode).padStart(2, "0")} / ${escapeCell(job.clipId)} | ${escapeCell(job.mode)} | ${escapeCell(job.ratio)}/${escapeCell(job.resolution)} | ${escapeCell(job.dialogueRoute)} | ${job.duration}s | ${escapeCell(job.status)} | ${job.costApproved ? "是" : "否"} | ${escapeCell(job.qc?.status ?? "pending")} |`);
+    lines.push("| Job | Provider | Episode/clip | Mode | Aspect/resolution | Dialogue | Duration | Status | Cost approved | QC |", "|---|---|---|---|---|---|---|---|---|---|");
+    for (const job of manifest.jobs) lines.push(`| ${escapeCell(job.jobId)} | ${escapeCell(job.provider)} | E${String(job.episode).padStart(2, "0")} / ${escapeCell(job.clipId)} | ${escapeCell(job.mode)} | ${escapeCell(job.ratio)}/${escapeCell(job.resolution)} | ${escapeCell(job.dialogueRoute)} | ${job.duration}s | ${escapeCell(job.status)} | ${job.costApproved ? "Yes" : "No"} | ${escapeCell(job.qc?.status ?? "pending")} |`);
     lines.push("");
   }
-  lines.push("## 风险", "");
-  if (!arrayOf(manifest.risks).length) lines.push("尚未登记。", "");
-  else for (const risk of manifest.risks) lines.push(`- [${risk.severity}/${risk.status}] ${risk.riskId}：${risk.description}${isFilled(risk.mitigation) ? `；措施：${risk.mitigation}` : ""}`);
-  lines.push("", "## 质量门", "", `- 结构结果：${validation.ok ? "PASS" : "FAIL"}`, `- ${validation.errors.length} errors / ${validation.warnings.length} warnings`);
+  lines.push("## Risks", "");
+  if (!arrayOf(manifest.risks).length) lines.push("None registered.", "");
+  else for (const risk of manifest.risks) lines.push(`- [${risk.severity}/${risk.status}] ${risk.riskId}: ${risk.description}${isFilled(risk.mitigation) ? `; Mitigation: ${risk.mitigation}` : ""}`);
+  lines.push("", "## Quality gate", "", `- Structural result: ${validation.ok ? "PASS" : "FAIL"}`, `- ${validation.errors.length} errors / ${validation.warnings.length} warnings`);
   for (const error of validation.errors) lines.push(`- ERROR ${error.code}｜${error.path}｜${error.message}`);
   for (const warning of validation.warnings) lines.push(`- WARN ${warning.code}｜${warning.path}｜${warning.message}`);
   return `${lines.join("\n").trim()}\n`;
@@ -1001,11 +1001,11 @@ export function renderManifest(manifest, manifestPath = "production.json") {
 
 function printValidation(result, jsonMode) {
   if (jsonMode) return console.log(JSON.stringify(result, null, 2));
-  console.log(result.ok ? "PASS｜production.json 通过结构质量门" : "FAIL｜production.json 未通过结构质量门");
-  console.log(`统计：${result.stats.artifacts} 制品 / ${result.stats.voiceAssets} 声音 / ${result.stats.jobs} 任务 / ${result.stats.openRisks} 开放风险`);
+  console.log(result.ok ? "PASS | production.json passed the structural quality gate" : "FAIL | production.json did not pass the structural quality gate");
+  console.log(`Statistics: ${result.stats.artifacts} artifacts / ${result.stats.voiceAssets} voice assets / ${result.stats.jobs} jobs / ${result.stats.openRisks} open risks`);
   for (const error of result.errors) console.log(`[ERROR ${error.code}] ${error.path}｜${error.message}`);
   for (const warning of result.warnings) console.log(`[WARN  ${warning.code}] ${warning.path}｜${warning.message}`);
-  console.log(`结果：${result.errors.length} errors, ${result.warnings.length} warnings`);
+  console.log(`Result: ${result.errors.length} errors, ${result.warnings.length} warnings`);
 }
 
 function usage() {
@@ -1033,13 +1033,13 @@ Usage:
 async function main() {
   const [command, target, ...args] = process.argv.slice(2);
   if (!command || ["help", "-h", "--help"].includes(command)) return usage();
-  if (!target) throw new Error(`${command} 需要目标路径`);
+  if (!target) throw new Error(`${command} requires a target path`);
 
   if (command === "init") {
     const projectDir = path.resolve(target);
     fs.mkdirSync(projectDir, { recursive: true });
     const manifestPath = path.join(projectDir, "production.json");
-    if (fs.existsSync(manifestPath)) throw new Error(`production.json 已存在，拒绝覆盖: ${manifestPath}`);
+    if (fs.existsSync(manifestPath)) throw new Error(`production.json already exists; refusing to overwrite: ${manifestPath}`);
     const source = requireOption(args, "--source");
     const manifest = createManifest({
       title: requireOption(args, "--title"),
@@ -1097,7 +1097,7 @@ async function main() {
       voiceAssetId: requireOption(args, "--id"),
       characterId: requireOption(args, "--character"),
       path: requireOption(args, "--path"),
-      language: optionValue(args, "--language", "zh"),
+      language: optionValue(args, "--language", "en"),
       durationSeconds: parseNumber(requireOption(args, "--seconds"), "seconds"),
       sampleType: optionValue(args, "--type", "voice-master"),
       rights: optionValue(args, "--rights", "unknown"),

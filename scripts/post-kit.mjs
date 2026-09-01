@@ -42,7 +42,7 @@ function fileSha256(file) {
 function parseEpisodeRange(value) {
   if (!value) return null;
   const match = String(value).match(/^(\d+)(?:-(\d+))?$/);
-  if (!match) throw new Error("--eps 必须形如 2 或 1-3");
+  if (!match) throw new Error("--eps must look like 2 or 1-3");
   return [Number(match[1]), Number(match[2] ?? match[1])];
 }
 
@@ -148,51 +148,51 @@ export function preflightEditPlan(plan, options = {}) {
   const errors = [];
   const warnings = [];
   const ffprobe = options.ffprobe === undefined ? findFfprobe() : options.ffprobe;
-  if (arrayOf(plan.episodes).length === 0) errors.push("没有 succeeded 视频任务可供装配");
+  if (arrayOf(plan.episodes).length === 0) errors.push("No succeeded video jobs are available to assemble");
   for (const episode of arrayOf(plan.episodes)) {
-    if (arrayOf(episode.clips).length === 0) errors.push(`E${String(episode.ep).padStart(2, "0")} 没有片段`);
+    if (arrayOf(episode.clips).length === 0) errors.push(`E${String(episode.ep).padStart(2, "0")} has no clips`);
     for (const clip of arrayOf(episode.clips)) {
       if (!fs.existsSync(clip.path) || !fs.statSync(clip.path).isFile()) {
-        errors.push(`${clip.jobId} 输出不存在: ${clip.path}`);
+        errors.push(`${clip.jobId} output does not exist: ${clip.path}`);
         continue;
       }
       if (!ffprobe) continue;
       const probe = probeMedia(clip.path, ffprobe);
       if (probe.error) {
-        errors.push(`${clip.jobId} 无法解码: ${probe.error}`);
+        errors.push(`${clip.jobId} cannot be decoded: ${probe.error}`);
         continue;
       }
       const video = arrayOf(probe.streams).find((stream) => stream.codec_type === "video");
       const audio = arrayOf(probe.streams).find((stream) => stream.codec_type === "audio");
-      if (!video) errors.push(`${clip.jobId} 没有视频流`);
-      if (plan.policies.requireAudioPerClip && !audio) errors.push(`${clip.jobId} 没有音频流；先补静音/对白轨再装配`);
+      if (!video) errors.push(`${clip.jobId} has no video stream`);
+      if (plan.policies.requireAudioPerClip && !audio) errors.push(`${clip.jobId} has no audio stream; add a silent/dialogue track before assembly`);
       if (video) {
         const actualRatio = Number(video.width) / Number(video.height);
         const targetRatio = plan.format.width / plan.format.height;
-        if (Math.abs(actualRatio - targetRatio) > 0.02) warnings.push(`${clip.jobId} 画幅 ${video.width}x${video.height} 将按 contain-pad 适配 ${plan.format.aspectRatio}`);
+        if (Math.abs(actualRatio - targetRatio) > 0.02) warnings.push(`${clip.jobId} aspect ratio ${video.width}x${video.height} will be fitted to ${plan.format.aspectRatio} using contain-pad`);
         const fps = fpsNumber(video.avg_frame_rate);
-        if (Number.isFinite(fps) && Math.abs(fps - plan.format.fps) > 0.05) warnings.push(`${clip.jobId} ${fps.toFixed(3)}fps 将转换为 ${plan.format.fps}fps`);
+        if (Number.isFinite(fps) && Math.abs(fps - plan.format.fps) > 0.05) warnings.push(`${clip.jobId} ${fps.toFixed(3)}fps will be converted to ${plan.format.fps}fps`);
       }
     }
   }
-  if (!ffprobe) warnings.push("未找到 ffprobe：已完成文件/哈希预检，跳过编解码、画幅、帧率和音轨检查");
+  if (!ffprobe) warnings.push("ffprobe was not found: file/hash preflight completed, but codec, aspect-ratio, frame-rate, and audio-track checks were skipped");
   return { ok: errors.length === 0, errors, warnings, ffmpeg: options.ffmpeg === undefined ? findFfmpeg() : options.ffmpeg, ffprobe };
 }
 
 export function qcEpisode(plan, episode, options = {}) {
   const output = episode.output;
   const issues = [];
-  if (!fs.existsSync(output) || !fs.statSync(output).isFile()) return { ok: false, output, issues: [{ severity: "critical", code: "OUTPUT_MISSING", message: "粗剪输出不存在" }] };
+  if (!fs.existsSync(output) || !fs.statSync(output).isFile()) return { ok: false, output, issues: [{ severity: "critical", code: "OUTPUT_MISSING", message: "Rough-cut output does not exist" }] };
   const probe = probeMedia(output, options.ffprobe === undefined ? findFfprobe() : options.ffprobe);
-  if (!probe.available) return { ok: true, output, issues: [{ severity: "medium", code: "FFPROBE_MISSING", message: "未安装 ffprobe，无法执行技术流检查" }] };
+  if (!probe.available) return { ok: true, output, issues: [{ severity: "medium", code: "FFPROBE_MISSING", message: "ffprobe is not installed, so technical stream inspection cannot run" }] };
   if (probe.error) return { ok: false, output, issues: [{ severity: "critical", code: "DECODE_FAILED", message: probe.error }] };
   const video = arrayOf(probe.streams).find((stream) => stream.codec_type === "video");
   const audio = arrayOf(probe.streams).find((stream) => stream.codec_type === "audio");
-  if (!video) issues.push({ severity: "critical", code: "VIDEO_STREAM_MISSING", message: "没有视频流" });
-  if (!audio) issues.push({ severity: "high", code: "AUDIO_STREAM_MISSING", message: "没有音频流" });
-  if (video && (video.width !== plan.format.width || video.height !== plan.format.height)) issues.push({ severity: "high", code: "DIMENSION_MISMATCH", message: `实际 ${video.width}x${video.height}，目标 ${plan.format.width}x${plan.format.height}` });
+  if (!video) issues.push({ severity: "critical", code: "VIDEO_STREAM_MISSING", message: "Video stream is missing" });
+  if (!audio) issues.push({ severity: "high", code: "AUDIO_STREAM_MISSING", message: "Audio stream is missing" });
+  if (video && (video.width !== plan.format.width || video.height !== plan.format.height)) issues.push({ severity: "high", code: "DIMENSION_MISMATCH", message: `Actual ${video.width}x${video.height}; target ${plan.format.width}x${plan.format.height}` });
   const duration = Number(probe.format?.duration);
-  if (Number.isFinite(duration) && Math.abs(duration - episode.expectedSeconds) > Math.max(0.5, episode.expectedSeconds * 0.01)) issues.push({ severity: "high", code: "DURATION_MISMATCH", message: `实际 ${duration.toFixed(3)}s，期望 ${episode.expectedSeconds}s` });
+  if (Number.isFinite(duration) && Math.abs(duration - episode.expectedSeconds) > Math.max(0.5, episode.expectedSeconds * 0.01)) issues.push({ severity: "high", code: "DURATION_MISMATCH", message: `Actual ${duration.toFixed(3)}s; expected ${episode.expectedSeconds}s` });
   return { ok: !issues.some((item) => ["critical", "high"].includes(item.severity)), output, duration, issues };
 }
 
@@ -215,11 +215,11 @@ Usage:
 function main() {
   const [command, target, ...args] = process.argv.slice(2);
   if (!command || ["help", "-h", "--help"].includes(command)) return usage();
-  if (!target) throw new Error(`${command} 需要输入路径`);
+  if (!target) throw new Error(`${command} requires an input path`);
   if (command === "plan") {
     const manifestPath = path.resolve(target);
     const out = path.resolve(option(args, "--out", path.join(path.dirname(manifestPath), "edit-plan.json")));
-    if (fs.existsSync(out) && !args.includes("--force")) throw new Error(`输出已存在，使用 --force 才能覆盖: ${out}`);
+    if (fs.existsSync(out) && !args.includes("--force")) throw new Error(`Output already exists; use --force to overwrite: ${out}`);
     const plan = buildEditPlan(readJson(manifestPath), manifestPath, { episodes: parseEpisodeRange(option(args, "--eps", "")), outputDir: option(args, "--output-dir", path.join(path.dirname(manifestPath), "edit")) });
     writeJson(out, plan);
     console.log(out);
@@ -234,20 +234,20 @@ function main() {
   }
   const requestedEp = Number(option(args, "--ep", "0"));
   const episodes = arrayOf(plan.episodes).filter((episode) => !requestedEp || episode.ep === requestedEp);
-  if (episodes.length === 0) throw new Error("找不到要处理的集");
+  if (episodes.length === 0) throw new Error("No episode was found to process");
   if (command === "assemble") {
     const preflight = preflightEditPlan({ ...plan, episodes });
     if (!preflight.ok) throw new Error(preflight.errors.join("\n"));
     const commands = episodes.map((episode) => ({ ep: episode.ep, executable: preflight.ffmpeg ?? "ffmpeg", args: ffmpegArgsForEpisode(plan, episode) }));
     if (!args.includes("--execute")) {
-      console.log(JSON.stringify({ execute: false, commands, note: "加 --execute 才会写出粗剪文件" }, null, 2));
+      console.log(JSON.stringify({ execute: false, commands, note: "Add --execute to write rough-cut files" }, null, 2));
       return;
     }
-    if (!preflight.ffmpeg) throw new Error("未找到 ffmpeg；设置 FFMPEG_PATH 或安装 ffmpeg 后重试");
+    if (!preflight.ffmpeg) throw new Error("ffmpeg was not found; set FFMPEG_PATH or install ffmpeg, then retry");
     for (const command of commands) {
       fs.mkdirSync(path.dirname(plan.episodes.find((episode) => episode.ep === command.ep).output), { recursive: true });
       const result = spawnSync(command.executable, command.args, { stdio: "inherit", windowsHide: true });
-      if (result.status !== 0) throw new Error(`E${String(command.ep).padStart(2, "0")} FFmpeg 装配失败`);
+      if (result.status !== 0) throw new Error(`E${String(command.ep).padStart(2, "0")} FFmpeg assembly failed`);
     }
     return;
   }

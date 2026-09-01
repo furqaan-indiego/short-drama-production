@@ -36,7 +36,7 @@ function fishApiKey() {
   const configured = String(process.env.FISH_API_KEY_FILE ?? "").trim();
   const keyFile = configured ? path.resolve(configured) : path.join(os.homedir(), ".codex", "secrets", "fish.key");
   if (!key && fs.existsSync(keyFile)) key = fs.readFileSync(keyFile, "utf8").replace(/^\uFEFF/, "").trim();
-  if (!key) throw new Error("缺少 FISH_API_KEY、FISH_API_KEY_FILE 或 ~/.codex/secrets/fish.key");
+  if (!key) throw new Error("Missing FISH_API_KEY, FISH_API_KEY_FILE, or ~/.codex/secrets/fish.key");
   return key;
 }
 
@@ -55,8 +55,8 @@ function curlBaseArgs(endpoint, options = {}) {
 }
 
 function curlFailure(result) {
-  if (result.error) throw new Error(`curl 启动失败: ${result.error.message}`);
-  if (result.status !== 0) throw new Error(`curl 请求失败: ${String(result.stderr ?? "").trim().slice(0, 1000) || `exit ${result.status}`}`);
+  if (result.error) throw new Error(`Failed to start curl: ${result.error.message}`);
+  if (result.status !== 0) throw new Error(`curl request failed: ${String(result.stderr ?? "").trim().slice(0, 1000) || `exit ${result.status}`}`);
 }
 
 function fishJsonRequest(endpoint, options = {}) {
@@ -65,12 +65,12 @@ function fishJsonRequest(endpoint, options = {}) {
   curlFailure(result);
   const output = String(result.stdout ?? "");
   const index = output.lastIndexOf(marker);
-  if (index < 0) throw new Error("Fish 响应缺少 HTTP 状态");
+  if (index < 0) throw new Error("Fish response is missing an HTTP status");
   const body = output.slice(0, index);
   const status = Number(output.slice(index + marker.length).trim());
   if (status < 200 || status >= 300) throw new Error(`Fish Audio HTTP ${status}: ${body.slice(0, 1000)}`);
   try { return JSON.parse(body); }
-  catch { throw new Error(`Fish 返回非 JSON 响应: ${body.slice(0, 500)}`); }
+  catch { throw new Error(`Fish returned a non-JSON response: ${body.slice(0, 500)}`); }
 }
 
 function fishDownload(endpoint, output, options = {}) {
@@ -89,14 +89,14 @@ function fishDownload(endpoint, output, options = {}) {
 }
 
 export function buildVoiceDiscoveryQuery(input = {}) {
-  const language = input.language ?? "zh";
+  const language = input.language ?? "en";
   const count = Number(input.count ?? 20);
   const page = Number(input.page ?? 1);
   const sortBy = input.sortBy ?? "task_count";
-  if (!LANGUAGES.test(language)) throw new Error(`language 格式无效: ${language}`);
-  if (!Number.isInteger(count) || count < 1 || count > 50) throw new Error("count 必须为 1–50");
-  if (!Number.isInteger(page) || page < 1) throw new Error("page 必须为正整数");
-  if (!new Set(["score", "task_count", "created_at"]).has(sortBy)) throw new Error(`sort 无效: ${sortBy}`);
+  if (!LANGUAGES.test(language)) throw new Error(`Invalid language format: ${language}`);
+  if (!Number.isInteger(count) || count < 1 || count > 50) throw new Error("count must be 1–50");
+  if (!Number.isInteger(page) || page < 1) throw new Error("page must be a positive integer");
+  if (!new Set(["score", "task_count", "created_at"]).has(sortBy)) throw new Error(`Invalid sort: ${sortBy}`);
   const query = new URLSearchParams({ page_size: String(count), page_number: String(page), language, sort_by: sortBy });
   if (filled(input.title)) query.set("title", input.title.trim());
   if (filled(input.tag)) query.set("tag", input.tag.trim());
@@ -105,12 +105,12 @@ export function buildVoiceDiscoveryQuery(input = {}) {
 
 export function buildFishTtsRequest(input) {
   const model = input.model ?? "s2.1-pro-free";
-  if (!TTS_MODELS.has(model)) throw new Error(`不支持 Fish TTS model: ${model}`);
-  if (!filled(input.text)) throw new Error("TTS text 不能为空");
-  if (!filled(input.referenceId)) throw new Error("必须提供 Fish reference_id");
+  if (!TTS_MODELS.has(model)) throw new Error(`Unsupported Fish TTS model: ${model}`);
+  if (!filled(input.text)) throw new Error("TTS text cannot be empty");
+  if (!filled(input.referenceId)) throw new Error("Fish reference_id is required");
   const licenseScope = input.licenseScope ?? "evaluation-only";
-  if (!new Set(["evaluation-only", "commercial"]).has(licenseScope)) throw new Error(`无效 licenseScope: ${licenseScope}`);
-  if (model === "s2.1-pro-free" && licenseScope !== "evaluation-only") throw new Error("s2.1-pro-free 只能登记为 evaluation-only");
+  if (!new Set(["evaluation-only", "commercial"]).has(licenseScope)) throw new Error(`Invalid licenseScope: ${licenseScope}`);
+  if (model === "s2.1-pro-free" && licenseScope !== "evaluation-only") throw new Error("s2.1-pro-free can only be registered as evaluation-only");
   return {
     model,
     licenseScope,
@@ -128,7 +128,7 @@ export function buildFishTtsRequest(input) {
 
 export function wavDurationSeconds(file) {
   const buffer = fs.readFileSync(file);
-  if (buffer.length < 44 || buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") throw new Error(`不是有效 WAV: ${file}`);
+  if (buffer.length < 44 || buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") throw new Error(`Not a valid WAV: ${file}`);
   let offset = 12;
   let byteRate = 0;
   let dataBytes = 0;
@@ -140,13 +140,13 @@ export function wavDurationSeconds(file) {
     if (id === "data") dataBytes += Math.min(size, Math.max(0, buffer.length - start));
     offset = start + size + (size % 2);
   }
-  if (!byteRate || !dataBytes) throw new Error(`WAV 缺少 fmt/data: ${file}`);
+  if (!byteRate || !dataBytes) throw new Error(`WAV is missing fmt/data: ${file}`);
   return dataBytes / byteRate;
 }
 
 export function normalizeWavHeader(file) {
   const buffer = fs.readFileSync(file);
-  if (buffer.length < 44 || buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") throw new Error(`不是有效 WAV: ${file}`);
+  if (buffer.length < 44 || buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") throw new Error(`Not a valid WAV: ${file}`);
   let offset = 12;
   let dataHeader = -1;
   while (offset + 8 <= buffer.length) {
@@ -155,7 +155,7 @@ export function normalizeWavHeader(file) {
     if (id === "data") { dataHeader = offset; break; }
     offset += 8 + size + (size % 2);
   }
-  if (dataHeader < 0) throw new Error(`WAV 缺少 data: ${file}`);
+  if (dataHeader < 0) throw new Error(`WAV is missing data: ${file}`);
   buffer.writeUInt32LE(buffer.length - 8, 4);
   buffer.writeUInt32LE(buffer.length - (dataHeader + 8), dataHeader + 4);
   fs.writeFileSync(file, buffer);
@@ -165,16 +165,16 @@ export function normalizeWavHeader(file) {
 export function registerFishMaster(manifest, manifestPath, input) {
   const output = path.resolve(input.output);
   const durationSeconds = wavDurationSeconds(output);
-  if (durationSeconds < 2 || durationSeconds > 15) throw new Error(`H3 声音母版必须为 2–15 秒，当前 ${durationSeconds.toFixed(2)} 秒`);
+  if (durationSeconds < 2 || durationSeconds > 15) throw new Error(`H3 voice master must be 2–15 seconds; current duration is ${durationSeconds.toFixed(2)} seconds`);
   return addVoiceAsset(manifest, manifestPath, {
     voiceAssetId: input.voiceAssetId,
     characterId: input.characterId,
     path: output,
-    language: input.language ?? "zh",
+    language: input.language ?? "en",
     durationSeconds: Number(durationSeconds.toFixed(3)),
     sampleType: input.sampleType ?? "voice-master",
     rights: input.rights ?? "synthetic",
-    notes: input.notes ?? "Fish Audio 生成；需人工试听后批准",
+    notes: input.notes ?? "Generated by Fish Audio; approve only after human listening",
     provider: "fish-audio",
     providerModel: input.model,
     providerVoiceId: input.referenceId,
@@ -193,7 +193,7 @@ function argsObject(argv) {
     else if (token === "--execute") result.execute = true;
     else {
       const value = argv[index + 1];
-      if (value === undefined || value.startsWith("--")) throw new Error(`${token} 缺少值`);
+      if (value === undefined || value.startsWith("--")) throw new Error(`${token} is missing a value`);
       result[token.slice(2)] = value;
       index += 1;
     }
@@ -202,13 +202,13 @@ function argsObject(argv) {
 }
 
 function required(args, name) {
-  if (!filled(args[name])) throw new Error(`缺少 --${name}`);
+  if (!filled(args[name])) throw new Error(`Missing --${name}`);
   return args[name];
 }
 
 function confirmExecute(args, id) {
   if (!args.execute) return false;
-  if (args.confirm !== id) throw new Error(`执行外部生成必须提供 --confirm ${id}`);
+  if (args.confirm !== id) throw new Error(`External generation requires --confirm ${id}`);
   return true;
 }
 
@@ -236,7 +236,7 @@ async function auditionCommand(args) {
   const id = required(args, "id");
   const outputDir = path.resolve(required(args, "out"));
   const referenceIds = required(args, "reference-ids").split(",").map((value) => value.trim()).filter(Boolean);
-  if (!referenceIds.length || referenceIds.length > 4 || new Set(referenceIds).size !== referenceIds.length) throw new Error("--reference-ids 必须包含 1–4 个不重复 ID");
+  if (!referenceIds.length || referenceIds.length > 4 || new Set(referenceIds).size !== referenceIds.length) throw new Error("--reference-ids must contain 1–4 unique IDs");
   const requestBase = { model: args.model ?? "s2.1-pro-free", text: required(args, "text"), licenseScope: args["license-scope"], speed: Number(args.speed ?? 1) };
   if (!confirmExecute(args, id)) {
     console.log(JSON.stringify({ action: "dry-run", endpoint: "/v1/tts", id, outputDir, referenceIds, model: requestBase.model, text: requestBase.text, licenseScope: requestBase.licenseScope ?? "evaluation-only" }, null, 2));
@@ -264,9 +264,9 @@ async function cloneCommand(args) {
   const id = required(args, "id");
   const sample = path.resolve(required(args, "sample"));
   const output = path.resolve(required(args, "out"));
-  if (!fs.existsSync(sample) || !fs.statSync(sample).isFile()) throw new Error(`克隆样本不存在: ${sample}`);
+  if (!fs.existsSync(sample) || !fs.statSync(sample).isFile()) throw new Error(`Clone sample does not exist: ${sample}`);
   const visibility = args.visibility ?? "private";
-  if (!new Set(["private", "unlist", "public"]).has(visibility)) throw new Error(`visibility 无效: ${visibility}`);
+  if (!new Set(["private", "unlist", "public"]).has(visibility)) throw new Error(`Invalid visibility: ${visibility}`);
   if (!confirmExecute(args, id)) {
     console.log(JSON.stringify({ action: "dry-run", endpoint: "/model", id, sample, sampleSha256: sha256(sample), title: args.title ?? id, visibility, output }, null, 2));
     return;
@@ -297,7 +297,7 @@ async function masterCommand(args) {
   fs.renameSync(temporary, output);
   const manifest = readJson(manifestPath);
   const asset = registerFishMaster(manifest, manifestPath, {
-    output, voiceAssetId, characterId: required(args, "character"), language: args.language ?? "zh",
+    output, voiceAssetId, characterId: required(args, "character"), language: args.language ?? "en",
     model: request.model, referenceId: request.payload.reference_id, licenseScope: request.licenseScope,
     rights: args.rights ?? "unknown", sourceType: args.source ?? "voice-library-or-private-model", notes: args.note ?? ""
   });
@@ -309,7 +309,7 @@ async function masterCommand(args) {
 function help() {
   console.log(`Fish Audio voice adapter
 
-  node scripts/fish-voice.mjs discover --id <search-id> --out <voices.json> [--title <term>] [--language zh] [--count 20] [--execute --confirm <search-id>]
+  node scripts/fish-voice.mjs discover --id <search-id> --out <voices.json> [--title <term>] [--language en] [--count 20] [--execute --confirm <search-id>]
   node scripts/fish-voice.mjs audition --id <audition-id> --reference-ids <id1,id2,id3> --text <preview> --out <dir> [--model s2.1-pro-free] [--execute --confirm <audition-id>]
   node scripts/fish-voice.mjs clone --id <voice-id> --sample <candidate.wav> --out <voice.json> [--visibility private] [--execute --confirm <voice-id>]
   node scripts/fish-voice.mjs master --production <production.json> --id <asset-id> --character <C01> --reference-id <fish-id> --text <master text> --out <master.wav> [--model s2.1-pro-free] [--execute --confirm <asset-id>]
@@ -325,7 +325,7 @@ async function main() {
   if (command === "audition") return auditionCommand(args);
   if (command === "clone") return cloneCommand(args);
   if (command === "master") return masterCommand(args);
-  throw new Error(`未知命令: ${command}`);
+  throw new Error(`Unknown command: ${command}`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

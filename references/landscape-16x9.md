@@ -1,8 +1,8 @@
-# 16:9 横屏生产合同
+# 16:9 landscape-production contract
 
-## 1. 默认项目规格
+## 1. Default project specification
 
-新项目默认：
+New projects default to:
 
 ```json
 {
@@ -17,38 +17,38 @@
 }
 ```
 
-`generationResolution` 是 H3 生成档位，`deliveryWidth/Height` 是后期交付规格，两者不要混为一谈。样片默认 768P 控制成本；用户批准清晰度和成本后可改为 2K。成片粗剪统一装配为 1920×1080。
+`generationResolution` is the H3 generation tier, while `deliveryWidth/Height` is the post-production delivery specification; do not confuse them. Pilots default to 768P to control cost. After the user approves clarity and cost, change to 2K. Assemble final rough cuts at 1920×1080.
 
-## 2. 横屏导演语法
+## 2. Landscape directing grammar
 
-16:9 的优势是关系、空间和调度，不要把竖屏方案简单扩边：
+The advantage of 16:9 is relationships, space, and blocking. Do not simply expand a vertical-video treatment sideways:
 
-- 优先把冲突双方放在左右三分位，用距离、遮挡和负空间显示权力。
-- 双人镜、过肩镜和前后景关系可以承担叙事；特写只留给认知、证据和反应。
-- 人物横向移动要维护屏幕方向；进出画、视线和道具交接都必须写明左右关系。
-- 群戏先建立空间层级，再用中近景转移权力；不要把所有人物排成横向合影。
-- 横向运镜必须有可见触发、路径和停点。平移不是“电影感”，是关系变化。
-- 关键文字、证据和脸避免贴近左右边缘；为播放器裁切和平台控件保留安全区。
-- 手机、电脑或文件承载剧情关键信息时，不因横屏有更多空间就把内容留在小屏幕里。环境镜头之后使用占画面至少一半的插入镜头、全屏主观内容或后期合成，并明确切回人物反应。
+- Place conflicting parties in the left and right thirds; use distance, occlusion, and negative space to show power.
+- Two-shots, over-the-shoulder shots, and foreground/background relationships can carry narrative; reserve close-ups for realization, evidence, and reaction.
+- Preserve screen direction for lateral character movement. Specify left/right relationships for entrances, exits, eyelines, and prop handoffs.
+- In ensemble scenes, establish spatial hierarchy first, then shift power through medium and close shots. Do not line everyone up for a horizontal group portrait.
+- Horizontal camera movement must have a visible trigger, path, and stopping point. A lateral move is not "cinematic" by itself; it represents a relationship change.
+- Keep key text, evidence, and faces away from the left and right edges. Retain safe area for player cropping and platform controls.
+- When a phone, computer, or document carries plot-critical information, do not leave the content on a tiny screen merely because landscape has more space. After an environmental shot, use an insert occupying at least half the frame, full-screen subjective content, or a post composite, then explicitly cut back to character reaction.
 
-导演阶段必须显式使用：
+At the directing stage, explicitly use:
 
 ```bash
 node <short-drama-director>/scripts/director-kit.mjs seed <script.json> --aspect 16:9
 ```
 
-若导演包仍为 9:16，桥接器必须失败；不得在技术分镜阶段偷偷改横屏。
+If the director package is still 9:16, the bridge must fail. Do not quietly change it to landscape during technical storyboarding.
 
-## 3. 分镜图和 H3
+## 3. Storyboard images and H3
 
-- 每张关键帧和分镜图使用 16:9，不接受“横屏项目 + 竖屏参考帧 + 后期裁切”的默认做法。
-- Ref2VA 任务显式提交 `ratio=16:9`。
-- I2VA / FL2VA 的官方接口会把 `ratio` 视为 `adaptive`，实际画幅由输入首帧/尾帧决定，因此这些帧本身必须是 16:9。
-- 提示词的构图描述使用 left/right third、foreground/background plane、lateral separation、negative space 等横屏关系语言；不要沿用“人物居中、上下留字幕”的竖屏惯性。
-- 同一项目的 `production.json`、导演包、storyboard、H3 job 和 edit plan 画幅必须一致。
+- Every keyframe and storyboard image uses 16:9. Do not default to "landscape project + vertical reference frame + crop in post."
+- Ref2VA jobs explicitly submit `ratio=16:9`.
+- The official I2VA / FL2VA API treats `ratio` as `adaptive`; actual aspect ratio comes from the first/last input frame, so those frames must themselves be 16:9.
+- Use landscape relationship language in composition descriptions: `left/right third`, `foreground/background plane`, `lateral separation`, and `negative space`. Do not retain a vertical-video habit of "character centered, subtitles above and below."
+- `production.json`, the director package, storyboard, H3 job, and edit plan must use the same aspect ratio within a project.
 
-## 4. 后期与衍生版
+## 4. Post-production and derivatives
 
-粗剪采用 `contain-pad` 统一输入尺寸，不直接拉伸。出现黑边说明上游片段画幅或构图未对齐，QC 必须记录。
+Rough cuts use `contain-pad` to normalize input sizes rather than stretching. Black bars mean upstream segments are misaligned in aspect ratio or composition and must be recorded in QC.
 
-9:16、1:1 等平台衍生版是新的交付制品，需要单独重构图、字幕安全区和审片；不能把 16:9 母版的中心裁切视为自动完成。若需要多画幅，从导演期就建立保护构图和版本依赖。
+Platform derivatives such as 9:16 and 1:1 are new delivery artifacts. They need separate reframing, subtitle safe areas, and review; treating a center crop from a 16:9 master as automatic completion is not acceptable. If multiple aspect ratios are needed, establish protected composition and version dependencies from the directing stage.

@@ -1,15 +1,15 @@
-# `production.json` 合同
+# `production.json` contract
 
-`production.json` 只保存生产状态与引用，不复制大纲、剧本或分镜正文。
+`production.json` stores only production state and references. It does not duplicate the body of outlines, scripts, or storyboards.
 
-## 1. 顶层示例
+## 1. Top-level example
 
 ```json
 {
   "schemaVersion": "1.0",
   "project": {
     "id": "my-drama",
-    "title": "我的短剧",
+    "title": "My Drama",
     "createdAt": "2026-08-23T00:00:00.000Z",
     "updatedAt": "2026-08-23T00:00:00.000Z",
     "format": {
@@ -45,11 +45,11 @@
 }
 ```
 
-`contextIrPolicy` 使用 `off`、`pilot`、`selective`、`on`：新项目默认 `pilot`；完成受控样片后，只有同类镜头实测获益且未损失硬约束时才改为 `selective` 或 `on`。`selective` 表示逐 job 显式设置，适合运动复杂但精确文字、手部或连续性风险不一致的短剧。
+`contextIrPolicy` is one of `off`, `pilot`, `selective`, or `on`. New projects default to `pilot`. After a controlled pilot, change to `selective` or `on` only when comparable shots show measured benefit without losing hard constraints. `selective` means setting it explicitly per job, suitable for dramas where complex movement and risks around precise text, hands, or continuity differ by shot.
 
-新建项目默认使用上述 16:9 合同。`aspectRatio` 改变时，`orientation`、交付尺寸、构图配置和安全区必须一起按预设更新，并使全部非源制品过期。`generationResolution` 仅允许 `768P` / `2K`；它是 H3 生成档位，不是最终交付尺寸。
+New projects use the 16:9 contract above by default. When `aspectRatio` changes, update `orientation`, delivery dimensions, composition configuration, and safe area together from the preset, then stale every non-source artifact. `generationResolution` allows only `768P` / `2K`; it is an H3 generation tier, not the final delivery dimensions.
 
-## 2. 制品 `artifacts`
+## 2. Artifacts: `artifacts`
 
 ```json
 {
@@ -61,40 +61,40 @@
   "episodes": "1-3",
   "dependsOn": ["script-e01-e03", "cast", "art"],
   "status": "approved",
-  "sha256": "当前文件哈希",
-  "approvedSha256": "审批时文件哈希",
+  "sha256": "hash-of-current-file",
+  "approvedSha256": "hash-of-file-at-approval",
   "approvedDependencyHashes": {
-    "script-e01-e03": "审批时上游哈希",
-    "cast": "审批时上游哈希",
-    "art": "审批时上游哈希"
+    "script-e01-e03": "hash-of-upstream-at-approval",
+    "cast": "hash-of-upstream-at-approval",
+    "art": "hash-of-upstream-at-approval"
   },
-  "updatedAt": "ISO 时间",
+  "updatedAt": "ISO timestamp",
   "notes": []
 }
 ```
 
-字段：
+Fields:
 
-- `id`：全项目唯一、稳定，允许小写字母、数字、点、下划线和短横线。
-- `kind`：`source`、`outline`、`cast`、`art`、`script`、`director`、`storyboard`、`frames`、`video`、`audio`、`edit`、`qc`、`delivery`。
-- `stage`：与 `kind` 对应的生产阶段；必要时可把多个文件归在同一阶段。
-- `producer`：专业 Skill 名或 `manual`。
-- `path`：相对 `production.json` 的路径；项目外来源可以是绝对路径。
-- `episodes`：`all`、`1`、`1-3` 等可读范围。
-- `dependsOn`：上游制品 ID，不得形成环。
-- `status`：`planned`、`working`、`review`、`approved`、`stale`、`missing`、`blocked`、`failed`、`skipped`。
+- `id`: Stable and project-unique; permits lowercase letters, digits, periods, underscores, and hyphens.
+- `kind`: `source`, `outline`, `cast`, `art`, `script`, `director`, `storyboard`, `frames`, `video`, `audio`, `edit`, `qc`, or `delivery`.
+- `stage`: The production stage corresponding to `kind`; multiple files may be grouped at one stage when needed.
+- `producer`: Specialist skill name or `manual`.
+- `path`: A path relative to `production.json`; an external source may use an absolute path.
+- `episodes`: A readable range such as `all`, `1`, or `1-3`.
+- `dependsOn`: Upstream artifact IDs; must not form a cycle.
+- `status`: `planned`, `working`, `review`, `approved`, `stale`, `missing`, `blocked`, `failed`, or `skipped`.
 
-`approve` 捕获 `approvedSha256` 与 `approvedDependencyHashes`。`refresh` 发现本文件改变时标记 `review`，发现上游改变时标记 `stale`。
+`approve` captures `approvedSha256` and `approvedDependencyHashes`. When `refresh` detects a changed file, it marks it `review`; when it detects a changed upstream dependency, it marks it `stale`.
 
-## 3. 声音资产 `voiceAssets`
+## 3. Voice assets: `voiceAssets`
 
 ```json
 {
   "voiceAssetId": "V-C01-MASTER",
   "characterId": "C01",
   "path": "voices/C01-master.wav",
-  "sha256": "文件哈希",
-  "language": "zh",
+  "sha256": "file-hash",
+  "language": "en",
   "durationSeconds": 10,
   "sampleType": "voice-master",
   "rights": "synthetic",
@@ -104,21 +104,22 @@
   "providerVoiceId": "Fish reference_id",
   "sourceType": "voice-design-private-clone",
   "status": "approved",
-  "notes": "女中音，克制，句尾不明显上扬"
+  "notes": "female mezzo voice; restrained; no pronounced rising sentence endings"
 }
 ```
 
-- `sampleType`：`voice-master`、`exact-line`、`performance-reference`、`ambience`、`music`。
-- `rights`：`synthetic`、`owned`、`licensed`、`consented`、`unknown`。
-- `status`：`draft`、`approved`、`rejected`、`missing`。
-- `licenseScope`：`evaluation-only` 或 `commercial`。`s2.1-pro-free` 强制为 `evaluation-only`。
-- `provider` / `providerModel` / `providerVoiceId`：记录生成服务、模型和可复用声音 ID；不得保存 API key。
-- `sourceType`：例如 `voice-design-private-clone`、`owned-clone`、`licensed-library` 或 `manual`。
+- `sampleType`: `voice-master`, `exact-line`, `performance-reference`, `ambience`, or `music`.
+- `rights`: `synthetic`, `owned`, `licensed`, `consented`, or `unknown`.
+- `status`: `draft`, `approved`, `rejected`, or `missing`.
+- `licenseScope`: `evaluation-only` or `commercial`. `s2.1-pro-free` is forced to `evaluation-only`.
+- `provider` / `providerModel` / `providerVoiceId`: Record the generation service, model, and reusable voice ID; never store an API key.
+- `sourceType`: For example, `voice-design-private-clone`, `owned-clone`, `licensed-library`, or `manual`.
 
-用于付费任务的真实人物音频不得为 `rights=unknown`。声音母版建议 6–12 秒干声；H3 接口硬范围为 2–15 秒。
-评估声音可以用于内部 H3 样片，但任何已批准 `delivery` 不得引用 `evaluation-only` 声音；升级时必须重生成 WAV 并重新审批哈希。
+Real-person audio used in paid jobs must not have `rights=unknown`. A voice master is recommended to be 6–12 seconds of dry voice; the H3 API hard range is 2–15 seconds.
 
-## 4. 生成任务 `jobs`
+Evaluation voices may be used in internal H3 pilots, but an approved `delivery` must never reference an `evaluation-only` voice. On upgrade, regenerate the WAV and reapprove its hash.
+
+## 4. Generation jobs: `jobs`
 
 ```json
 {
@@ -192,43 +193,43 @@
 }
 ```
 
-`dialogueRoute`：
+`dialogueRoute`:
 
-- `h3-native-reference`：H3 参考声音母版生成新台词。
-- `h3-native-free`：H3 自行生成声音，只用于无固定声音或临时测试。
-- `tts-guided-h3`：先有准确台词音频，再由 H3 复用/参考并生成表演。
-- `tts-post`：H3 不生成对白，后期配音。
-- `silent`：无对白。
+- `h3-native-reference`: H3 generates new dialogue using a reference voice master.
+- `h3-native-free`: H3 generates its own voice; use only for a character without a fixed voice or a temporary test.
+- `tts-guided-h3`: Accurate dialogue audio exists first; H3 then copies/references it and generates performance.
+- `tts-post`: H3 generates no dialogue; dub in post-production.
+- `silent`: No dialogue.
 
-任务状态：`planned`、`approved`、`submitted`、`running`、`succeeded`、`failed`、`cancelled`、`rejected`。
+Job statuses: `planned`, `approved`, `submitted`, `running`, `succeeded`, `failed`, `cancelled`, or `rejected`.
 
-- `sequence`：全项目粗剪顺序；同一集按此排序。
-- `ratio`：Ref2VA 继承项目画幅；I2VA / FL2VA 必须为 `adaptive`，实际画幅由输入帧决定。
-- `resolution`：`768P` 或 `2K`。
-- `provider`：`minimax-official` 或 `compshare`。模型同为 MiniMax-H3 不代表两者共享密钥或提交端点。
-- `useContextIr`：可选布尔值；CompShare 为 `true` 时在请求顶层发送 `use_context_ir=true`，先执行 Context-IR 提示词优化。对比生成应使用独立 job ID 与输出路径。
-- `experiment`：可选的 A/B 审计。`changedVariables` 使用 `promptText`、`promptLanguage`、`referenceSet`、`useContextIr`、`duration`、`resolution`、`seed`。超过一个变化变量时仍可比较整体方案，但验证器会标记 `EXPERIMENT_CONFOUNDED`，禁止把胜因归给单个参数。
-- `sourceDurationSeconds` / `durationAdjustmentSeconds` / `durationPolicy`：从分镜小数总时长量化到 H3 整数时长的审计记录；不得悄悄舍入。
-- `execution`：外部任务 ID、远端状态、用量与提交/下载时间；不得保存 API key。
-- `outputSha256`：成功下载后记录，供剪辑计划与返工追踪。
+- `sequence`: Whole-project rough-cut order; sort an episode by this value.
+- `ratio`: Ref2VA inherits project aspect ratio; I2VA / FL2VA must use `adaptive`, with actual aspect ratio determined by input frames.
+- `resolution`: `768P` or `2K`.
+- `provider`: `minimax-official` or `compshare`. Sharing the MiniMax-H3 model name does not mean they share keys or submission endpoints.
+- `useContextIr`: Optional boolean. When `true` for CompShare, send `use_context_ir=true` at the request top level for Context-IR prompt optimization first. Comparison generations need independent job IDs and output paths.
+- `experiment`: Optional A/B audit. `changedVariables` uses `promptText`, `promptLanguage`, `referenceSet`, `useContextIr`, `duration`, `resolution`, or `seed`. When more than one variable changes, you may compare overall alternatives, but the validator marks `EXPERIMENT_CONFOUNDED`; do not attribute the win to one parameter.
+- `sourceDurationSeconds` / `durationAdjustmentSeconds` / `durationPolicy`: Audit record of quantizing fractional storyboard duration to integer H3 duration; do not silently round.
+- `execution`: External task ID, remote status, usage, and submission/download time; never store an API key.
+- `outputSha256`: Record after a successful download for edit-plan and rework tracking.
 
-H3 Ref2VA 合同：
+H3 Ref2VA contract:
 
-- `duration` 为 4–15 秒整数。
-- `reference_image` ≤ 9。
-- `reference_video` ≤ 3；每条 2–15 秒，总计 ≤ 15 秒。
-- `reference_audio` ≤ 3；每条 2–15 秒，总计 ≤ 15 秒。
-- 参考文件合计 ≤ 12。
-- 出现 `reference_audio` 时必须同时有参考图或参考视频。
-- 参考角色模式与 `first_frame` / `last_frame` 互斥。
-- `h3-native-reference` 的每位说话人都必须绑定已批准声音资产和实际 `reference_audio`。
-- `tts-guided-h3` 使用 `partially_copy` 或 `fully_copy`；普通声音母版使用 `reference`。
-- `submitted`、`running`、`succeeded` 必须已经有成本授权。
-- 正式执行提示词按官方 `h3-prompt-writing` 输出英文结构；中文对白、歌词和可见文字保留原文。中文自由 brief + Context-IR 属于另一实验条件，不得与参考集、时长或导演镜头同时改动后声称“中文更好”。
+- `duration` is an integer from 4–15 seconds.
+- `reference_image` ≤ 9.
+- `reference_video` ≤ 3; each is 2–15 seconds, total ≤ 15 seconds.
+- `reference_audio` ≤ 3; each is 2–15 seconds, total ≤ 15 seconds.
+- Total reference files ≤ 12.
+- When `reference_audio` is present, there must also be a reference image or reference video.
+- Reference-character mode is mutually exclusive with `first_frame` / `last_frame`.
+- Each `h3-native-reference` speaker binds to an approved voice asset and an actual `reference_audio`.
+- `tts-guided-h3` uses `partially_copy` or `fully_copy`; normal voice masters use `reference`.
+- `submitted`, `running`, and `succeeded` require cost approval already.
+- Final execution prompts use the official English structure from `h3-prompt-writing`; retain dialogue, lyrics, and visible text in their appropriate source language. A free-form non-English brief plus Context-IR is another experiment condition; do not change it together with reference set, duration, or director shot and then attribute the result to language.
 
-## 5. 导演桥接分镜
+## 5. Director-bridge storyboard
 
-`storyboard-bridge.mjs` 产出的 `storyboard.json` 在原分镜核心字段之外增加：
+The `storyboard.json` generated by `storyboard-bridge.mjs` adds these fields beyond the original storyboard core:
 
 ```json
 {
@@ -252,7 +253,7 @@ H3 Ref2VA 合同：
       "deviations": [],
       "cuts": [{
         "sourceShotId": "E01-S01-C01-SH01",
-        "dramaticPurpose": "原导演镜头目的",
+        "dramaticPurpose": "original director-shot purpose",
         "size": "wide",
         "angle": "eye",
         "lensMm": 35,
@@ -273,25 +274,25 @@ H3 Ref2VA 合同：
 }
 ```
 
-桥接质量门以 `sourceShotId` 为键核对覆盖、节拍、戏剧目的、景别、角度、焦段、运镜、屏幕方向和轴线。`directorIntent` 是不可篡改的原导演快照；技术字段需要改变时，新增 `deviations`，并明确 `fields`、原因、原方案、修改、戏剧影响、状态和审批人。只有 `status=approved` 且 `approvedBy` 非空的偏差可以通过质量门。
+The bridge quality gate keys on `sourceShotId` to check coverage, beats, dramatic purpose, shot size, angle, focal length, camera movement, screen direction, and axis. `directorIntent` is an immutable original-director snapshot. When a technical field must change, add a `deviations` entry that specifies `fields`, reason, original plan, change, dramatic impact, status, and approver. Only deviations with `status=approved` and a non-empty `approvedBy` pass the gate.
 
-## 6. 审批与风险
+## 6. Approvals and risks
 
-审批记录：
+Approval record:
 
 ```json
 {
   "approvalId": "APR-0001",
   "artifactId": "outline",
   "by": "user",
-  "at": "ISO 时间",
-  "sha256": "审批对象哈希",
+  "at": "ISO timestamp",
+  "sha256": "hash-of-approved-object",
   "dependencyHashes": {},
-  "note": "确认砍掉支线并将大爆点放在第18集"
+  "note": "Confirmed that the subplot was removed and the main payoff moves to episode 18"
 }
 ```
 
-风险记录：
+Risk record:
 
 ```json
 {
@@ -299,9 +300,9 @@ H3 Ref2VA 合同：
   "severity": "high",
   "stage": "generate",
   "status": "open",
-  "description": "四人同场超过 H3 三条音频参考上限",
-  "mitigation": "拆成双人关系镜头，画外台词后期处理"
+  "description": "Four people in one scene exceeds H3's three-reference-audio limit",
+  "mitigation": "Split into two-person relationship shots and handle off-camera dialogue in post"
 }
 ```
 
-`severity`：`low`、`medium`、`high`、`critical`；`status`：`open`、`mitigated`、`accepted`、`closed`。
+`severity`: `low`, `medium`, `high`, or `critical`; `status`: `open`, `mitigated`, `accepted`, or `closed`.

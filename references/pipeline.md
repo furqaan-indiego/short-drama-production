@@ -1,104 +1,104 @@
-# 短剧生产管线与审批门
+# Short-drama production pipeline and approval gates
 
-## 1. 总体阶段
+## 1. Overall stages
 
-| 阶段 | 主责 Skill | 硬输入 | 核心判断 | 主要产物 | 人工审批门 |
+| Stage | Primary skill | Hard inputs | Core decision | Main output | Human approval gate |
 |---|---|---|---|---|---|
-| ingest | 总控 | 原著/需求 | 平台、集数、单集时长、画幅、改编幅度、生成模型；新项目默认 16:9 | `production.json` | 项目范围确认 |
-| outline | `novel-outline` | 原著/需求 | 砍线、合人、爽点、付费点、钩子、悬念 | `outline.json` | 改编方向锁定 |
-| cast | `novel-characters` | 原著 + 已锁定大纲 | 只为保留角色做画像、视觉和声音母版 | `cast.json`、角色图、声音资产 | 角色与画风锁定 |
-| art | `novel-art` | 大纲 + 角色 | 场景锚点、光照、叙事道具、参考图 | `art.json`、场景/道具图 | 视觉圣经锁定 |
-| script | `novel-script` | 大纲 + 角色 + 美术 | 场次、动作、台词、钩子兑现、时长 | `script.json` | 每批剧本锁定 |
-| director | `short-drama-director` | 已锁定剧本 + 视觉圣经 | 目标/阻碍/转折、调度、轴线、景别、焦段、运镜、切点 | `director-package.json` | 导演方案锁定 |
-| storyboard | `storyboard-bridge` **或** `novel-storyboard`；提示词使用官方 `h3-prompt-writing` | 剧本 + 导演包 + 资产 | 选择一条技术分镜接入路线，完成时长适配与参考绑定；不得把两条路线串联后重复重切 | `storyboard.json` 或 H3 投产包 | 技术分镜锁定 |
-| generate | `h3-official` 或 CompShare H3 客户端 | 已锁定分镜 + 参考资产 + 声音资产 + 明确提供方 | 对应 API 预检、样片提交、轮询、下载、哈希、成本 | 视频片段 | 样片批准后批量 |
-| post | `post-kit` + 人工后期 | 视频片段 + 后期声音 + 字幕 | 16:9 粗剪装配、声画同步、音效、音乐、字幕、调色 | 工作版成片 | 工作版批准 |
-| qc | 总控 + 人工导演 | 工作版成片 + 所有上游 | 连续性、叙事、声音、技术、合规 | QC 单、返工单、母版 | 最终交付批准 |
+| ingest | production control | source material / brief | platform, episode count, episode length, aspect ratio, adaptation scope, generation model; new projects default to 16:9 | `production.json` | project-scope confirmation |
+| outline | `novel-outline` | source material / brief | removed plotlines, merged characters, payoff beats, paid points, hooks, suspense | `outline.json` | adaptation direction locked |
+| cast | `novel-characters` | source material + locked outline | profiles, visual identity, and voice masters only for retained characters | `cast.json`, character images, voice assets | character and visual style locked |
+| art | `novel-art` | outline + characters | set anchors, lighting, narrative props, reference images | `art.json`, set/prop images | visual bible locked |
+| script | `novel-script` | outline + characters + art | scenes, action, dialogue, hook fulfillment, duration | `script.json` | each script batch locked |
+| director | `short-drama-director` | locked script + visual bible | objective/obstacle/turn, blocking, axis, shot size, focal length, camera movement, cut points | `director-package.json` | directing plan locked |
+| storyboard | `storyboard-bridge` **or** `novel-storyboard`; prompts use official `h3-prompt-writing` | script + director package + assets | choose one technical-storyboard ingestion route, adapt duration, bind references; never chain both routes and cut the work twice | `storyboard.json` or H3 production package | technical storyboard locked |
+| generate | `h3-official` or CompShare H3 client | locked storyboard + reference assets + voice assets + explicit provider | API-specific preflight, pilot submission, polling, download, hashes, cost | video segments | batch only after pilot approval |
+| post | `post-kit` + human post | video segments + post sound + subtitles | 16:9 rough-cut assembly, audio-video sync, sound effects, music, subtitles, grading | working cut | working-cut approval |
+| qc | production control + human director | working cut + all upstream work | continuity, narrative, sound, technical, compliance | QC list, rework list, master | final-delivery approval |
 
-## 2. 推荐生产顺序
+## 2. Recommended production order
 
-### 开发期
+### Development
 
-先做全剧大纲，只做浅层资产预算。大纲审批时必须确认：删除的支线、合并的角色、主场景、大爆点位置和结尾方向。
+Create the complete-drama outline first and budget assets only at a shallow level. At outline approval, confirm removed subplots, merged characters, principal locations, the position of the major payoff, and the ending direction.
 
-### 预制期
+### Preproduction
 
-大纲锁定后并行制作保留角色和主要场景。不要在角色去留确定前批量做人物图，也不要为一次性陈设建立跨集资产。
+After the outline is locked, create retained characters and primary locations in parallel. Do not mass-produce character images before character retention is decided, and do not create cross-episode assets for one-off dressing.
 
-现实主义项目在场景美术前插入真实性门：为功能性公共空间和职业流程建立 `reality-audit.json`，至少核对功能身份、必需设备、拓扑、人流/物流和运行状态。先运行 `scripts/reality-audit.mjs validate`；审计结构未通过或关键帧人工状态仍为 `fail` 时，不得进入付费生成。
+For realism-based projects, add the grounding gate before scene art: create `reality-audit.json` for functional public spaces and occupational processes, verifying at least functional identity, required equipment, topology, people/goods flow, and operating state. Run `scripts/reality-audit.mjs validate` first. Do not enter paid generation if the audit structure fails or keyframes are still manually marked `fail`.
 
-美术先根据大纲建立基础版；第一批剧本写完后，根据实际道具状态、光照和调度补一次美术锁定。美术更新会让依赖它的剧本校验状态过期，这是正常迭代，不得绕过。
+Build a base art bible from the outline first. After the first script batch is written, lock art once more based on actual prop state, lighting, and blocking. An art update staling the validation state of scripts that depend on it is normal iteration and must not be bypassed.
 
-### 剧本期
+### Script phase
 
-默认每批 1–3 集。第一批既是剧本样片，也是后续导演、分镜和生成的试制范围。没有通过第一批成片，不批量写完所有分镜。
+Default to batches of 1–3 episodes. The first batch is both a script pilot and the trial scope for subsequent directing, storyboarding, and generation. Do not complete all storyboards in bulk before the first batch passes as finished video.
 
-### 导演期
+### Directing phase
 
-先拆戏与调度，后定机位。导演包回答“为何这样看”；技术分镜只回答“如何让目标模型执行”。两层不得同时独立重切剧本。
+Break down scenes and block them before fixing camera positions. The director package answers "why look at it this way?" The technical storyboard answers only "how can the target model execute it?" The two layers must not independently recut the same script at the same time.
 
-进入技术分镜时只选一条路线：导演桥接器用于直接把 `director-package.json` 变成可追溯任务底稿；`novel-storyboard export` 用于已经按其 schema 完成的标准技术分镜包。两者输出分别接 `jobs-sync` 与 `jobs-sync-package`，不是前后步骤。
+When entering technical storyboarding, choose one route only: the director bridge turns `director-package.json` directly into a traceable task draft; `novel-storyboard export` is for a standard technical-storyboard package already completed in its own schema. Their outputs connect to `jobs-sync` and `jobs-sync-package` respectively; they are alternatives, not sequential steps.
 
-### 生产期
+### Production phase
 
-固定顺序：
+Use this fixed order:
 
-1. 锁定第一段导演镜头、切点、姿态连续性和关键信息展示策略。
-2. 写分镜图提示词，生成第一段候选参考素材；此时不冻结最终 H3 提示词。
-3. 审核人物身份、场景全局方位、道具、躺/坐/站姿态、支撑点、持物手和关键信息可读性；失败素材不得进入 Ref2VA。
-4. 根据审核通过的真实参考文件顺序，用官方 `h3-prompt-writing` 生成最终提示词并做模式预检。
-5. 制作第一段 H3 样片，评审角色外观、声音、动作、运镜和信息是否看得懂。
-   - 样片必须分别验收画面内运动与摄影机运动；主体、道具、环境至少有一个清晰主运动，且有启动、发展和落点。
-   - 需要比较 Context-IR、参考集、语言或时长时，建立独立实验 job 并登记唯一变化变量；同时改变多项只能比较整体方案，不能作单因果结论。
-   - 无对白简单段在锁定前做一次节奏压缩推演，保护信息最小停留和转折反应；不以成片倍速代替重新计时。
-6. 现实敏感场景追加功能设备、空间拓扑和人流方向评审。
-7. 第一场或第一集。
-8. 全批次。
+1. Lock the first directing segment's shots, cut points, pose continuity, and key-information display strategy.
+2. Write storyboard-image prompts and generate first-segment candidate references. Do not freeze the final H3 prompt yet.
+3. Review character identity, global set orientation, props, lying/sitting/standing pose, support points, the hand holding objects, and key-information legibility. Failed assets must not enter Ref2VA.
+4. Based on the ordered, accepted real reference files, use official `h3-prompt-writing` to create the final prompt and preflight the mode.
+5. Create the first H3 pilot and review character appearance, voice, action, camera movement, and information legibility.
+   - Accept in-frame movement and camera movement separately. At least one of subject, prop, or environment needs clear primary movement with an initiation, development, and cuttable landing.
+   - To compare Context-IR, reference sets, language, or duration, create an independent experimental job and record the single changed variable. If multiple changes occur, compare only the whole alternative; do not draw a single-cause conclusion.
+   - Before locking simple silent segments, simulate one rhythm compression while protecting minimum information dwell and turning-point reaction. Do not use global final-video speed instead of retiming.
+6. Add functional-equipment, spatial-topology, and human-flow review for reality-sensitive scenes.
+7. Produce the first scene or episode.
+8. Expand to the full batch.
 
-API 已成功创建任务后，不因结果不理想自动付费重试。返工必须先归因：提示词、参考资产、调度复杂度、模型随机性、声音参考或剪辑问题。
+After an API successfully creates a task, do not automatically spend money retrying merely because the result is weak. Attribute rework first: prompt, reference asset, blocking complexity, model randomness, voice reference, or editing issue.
 
-提供方必须显式记录为 `minimax-official` 或 `compshare`。CompShare 项目读取 `compshare-h3.key`，不得因目标模型同为 MiniMax-H3 就改查 MiniMax 官方密钥。`novel-storyboard export` 产出的投产包通过 `jobs-sync-package` 接入总控；小数片段时长必须先量化为 4–15 秒整数，并保存原值和调整量。
+Record the provider explicitly as `minimax-official` or `compshare`. CompShare projects read `compshare-h3.key`; do not look up a MiniMax Official key merely because the target model is also MiniMax-H3. Ingest a production package from `novel-storyboard export` via `jobs-sync-package`; fractional segment duration must first be quantized to a 4–15-second integer while preserving source value and adjustment.
 
-新项目默认 `16:9`。导演、关键帧、H3 job 和粗剪计划必须全部继承 `production.json.project.format`；画幅变化属于 ingest 级变更，会使所有下游过期。
+New projects default to `16:9`. The director package, keyframes, H3 jobs, and rough-cut plan must all inherit `production.json.project.format`; changing aspect ratio is an ingest-level change and stales every downstream artifact.
 
-## 3. 审批语义
+## 3. Approval semantics
 
-审批锁定的是一个具体文件哈希与当时的全部上游哈希，不是抽象的“这个阶段永远完成”。
+An approval locks a concrete file hash and every upstream hash at that time; it is not an abstract statement that a stage is complete forever.
 
-- `review`：文件存在，但未批准或批准后文件本身改变。
-- `approved`：本文件与所有依赖和审批快照一致。
-- `stale`：至少一个上游已变化。
-- `missing`：登记路径不存在。
-- `blocked`：存在需要用户决策、权限、外部服务或无法自动解决的问题。
-- `skipped`：用户明确跳过，并记录风险。
+- `review`: the file exists but is unapproved, or the file itself changed after approval.
+- `approved`: the file, all dependencies, and the approval snapshot agree.
+- `stale`: at least one upstream item changed.
+- `missing`: the registered path does not exist.
+- `blocked`: a user decision, permission, external service, or unsolvable obstacle is required.
+- `skipped`: the user explicitly skipped it and recorded the risk.
 
-只有 `approved` 制品可以支撑付费生成。`stale` 和 `review` 不能靠口头说明绕过。
+Only `approved` artifacts can support paid generation. `stale` and `review` cannot be bypassed with a verbal explanation.
 
-## 4. 返工传播
+## 4. Rework propagation
 
-典型传播：
+Typical propagation:
 
 ```text
-outline 改角色 → cast / art / script / director / storyboard / video / edit 全部过期
-art 改服装或道具 → script 对账、director、storyboard、frames、video、edit 过期
-script 改台词 → director、storyboard、voice line、video、subtitle、edit 过期
-director 改镜头 → storyboard、frames、video、edit 过期
-voice master 改变 → 引用该声音的 H3 job 与相应 video/edit 过期
+outline changes a character → cast / art / script / director / storyboard / video / edit all become stale
+art changes wardrobe or a prop → script reconciliation, director, storyboard, frames, video, and edit become stale
+script changes dialogue → director, storyboard, voice line, video, subtitles, and edit become stale
+director changes a shot → storyboard, frames, video, and edit become stale
+voice master changes → H3 jobs that reference it and their related video/edit become stale
 ```
 
-返工从最靠上的真实原因开始，不在下游用补丁掩盖上游错误。
+Start rework at the highest real cause; do not hide upstream errors with downstream patches.
 
-## 5. 能并行与不能并行
+## 5. What can and cannot run in parallel
 
-可以并行：
+Can run in parallel:
 
-- 大纲锁定后的角色与基础美术。
-- 不同集的剧本初稿，但必须共享上一集结尾状态。
-- 已锁定导演方案后，不同生成片段的关键帧或视频任务。
+- Characters and base art after the outline is locked.
+- Initial script drafts for different episodes, provided they share the previous episode's ending state.
+- Keyframes or video jobs for different generation segments after the directing plan is locked.
 
-不可并行：
+Cannot run in parallel:
 
-- 未锁定大纲时批量制作全部角色资产。
-- 剧本与导演对同一场同时改剧情事实。
-- 导演和分镜分别独立决定同一镜头设计。
-- 样片未确认时批量提交付费视频任务。
+- Mass-producing all character assets before the outline is locked.
+- Script and directing both changing story facts for the same scene.
+- Director and storyboard independently deciding the same shot design.
+- Submitting paid video jobs in bulk before the pilot is confirmed.

@@ -1,32 +1,32 @@
-# Fish Audio 角色声音母版合同
+# Fish Audio character voice-master contract
 
-本页在使用 Fish Audio 筛选声音、生成试听、克隆已授权声音、制作声音母版或把声音资产交给 H3 时读取。Fish Audio 是外部服务；执行查询、生成或上传前都要获得当次授权。
+Read this page when using Fish Audio to discover voices, generate auditions, clone an authorized voice, create a voice master, or hand a voice asset to H3. Fish Audio is an external service; obtain authorization for the current action before querying, generating, or uploading.
 
-## 1. 生产定位
+## 1. Production role
 
-Fish Audio 不默认承担全剧逐句配音。它优先承担：
+Fish Audio does not default to line-by-line dubbing of the full drama. Prioritize it for:
 
-- 从公开声音库筛选 1–4 个评估候选。
-- 用同一句非剧情试音文本生成可盲听的 WAV。
-- 把自有或已获授权的录音建立为私有声音 ID。
-- 为主要角色生成 6–12 秒稳定声音母版。
-- 为金额、人名、咒语和付费点台词生成必须逐字准确的整句。
+- Discovering 1–4 evaluation candidates from the public voice library.
+- Generating blind-listening WAV files with the same non-story audition line.
+- Turning owned or authorized recordings into a private voice ID.
+- Generating a stable 6–12-second voice master for a main character.
+- Generating whole lines that must be word-perfect, including amounts, names, spells, and paid-point dialogue.
 
-普通对白仍优先走 H3 `h3-native-reference`，把批准后的母版作为 `reference_audio`；这样兼顾口型、表演和成本。
+For normal dialogue, prefer H3 `h3-native-reference` with an approved master as `reference_audio`; this balances lip sync, performance, and cost.
 
-## 2. 本适配器的能力边界
+## 2. This adapter's capability boundary
 
-本 skill 只使用 Fish 公开 OpenAPI 中以下端点：
+This skill uses only these endpoints from Fish's public OpenAPI:
 
-- 公开声音检索：`GET https://api.fish.audio/model`。
-- 获取声音详情：`GET https://api.fish.audio/model/{id}`。
-- 创建声音克隆：`POST https://api.fish.audio/model`。
-- 语音生成：`POST https://api.fish.audio/v1/tts`。
-- 密钥：`FISH_API_KEY`、`FISH_API_KEY_FILE` 或 `~/.codex/secrets/fish.key`。
+- Public voice search: `GET https://api.fish.audio/model`.
+- Voice detail: `GET https://api.fish.audio/model/{id}`.
+- Voice-clone creation: `POST https://api.fish.audio/model`.
+- Speech generation: `POST https://api.fish.audio/v1/tts`.
+- Credentials: `FISH_API_KEY`, `FISH_API_KEY_FILE`, or `~/.codex/secrets/fish.key`.
 
-其他 Fish 能力不属于当前适配器；即使官方 OpenAPI 已提供，也不能在没有对应脚本、确认门和测试时临时拼接调用。需要原创音色时先在 Fish 官方界面或其他已授权流程中得到 `reference_id`，再交给本脚本；也可直接使用自有/已授权录音建立私有模型。
+Other Fish capabilities are outside the current adapter. Even if the official OpenAPI exposes them, do not improvise calls without the corresponding script, confirmation gate, and tests. For an original voice identity, obtain `reference_id` first in Fish's official UI or another authorized workflow, then hand it to this script; you can also use owned or authorized recordings to create a private model.
 
-权威资料：
+Authoritative references:
 
 - <https://api.fish.audio/openapi.json>
 - <https://docs.fish.audio/features/voice-cloning>
@@ -34,49 +34,49 @@ Fish Audio 不默认承担全剧逐句配音。它优先承担：
 - <https://docs.fish.audio/developer-guide/models-pricing/pricing-and-rate-limits>
 - <https://fish.audio/terms/>
 
-模型、免费期、价格、留存和商用条款会变化；每次投产前重新核对。
+Models, free-tier duration, prices, retention, and commercial terms can change; recheck before every production run.
 
-## 3. 免费到付费的可升级路径
+## 3. Upgrade path from free to paid
 
-`s2.1-pro-free` 资产统一登记为 `licenseScope=evaluation-only`，可以用于内部试听、角色定音和 H3 样片，不得进入商业交付。公共声音接口返回 `licensed=false` 时，即使换成付费 TTS 也不能自动视为拥有该音色的商用权。
+Register `s2.1-pro-free` assets as `licenseScope=evaluation-only`. They may be used for internal auditions, character voice selection, and H3 pilots, but not commercial delivery. If the public-voice API returns `licensed=false`, switching to paid TTS does not automatically grant commercial voice rights.
 
-进入商业投产时：
+When moving into commercial production:
 
-1. 选用 Fish 明确许可的声音，或用自有/已授权录音建立私有模型。
-2. 使用具有商业许可的付费模型重制同一 `voiceAssetId`。
-3. 记录模型、声音 ID、生成时间、权利凭证和新 SHA-256。
-4. 重新执行 `voice-approve`；旧哈希自动失效。
-5. 刷新所有引用该声音的 H3 任务并重新审批。
+1. Select a voice that Fish explicitly licenses, or create a private model from owned or authorized recordings.
+2. Regenerate the same `voiceAssetId` with a paid model that has commercial rights.
+3. Record the model, voice ID, generation time, proof of rights, and new SHA-256.
+4. Run `voice-approve` again; the old hash invalidates automatically.
+5. Refresh and reapprove every H3 job that references the voice.
 
-不能只改 JSON 标记而复用免费文件，必须重制实际音频。
+Do not merely change a JSON label while reusing a free file; regenerate the real audio.
 
-## 4. 内置命令
+## 4. Included commands
 
-所有命令默认只做无网络 dry-run；只有同时给 `--execute --confirm <id>` 才连接 Fish。脚本使用系统 `curl`，以兼容 Windows 系统代理；密钥只作为请求头传给 Fish，不写入日志或产物。
+Every command defaults to a no-network dry run. It contacts Fish only when both `--execute --confirm <id>` are present. The script uses system `curl` for Windows system-proxy compatibility; it sends the key only as a request header and never writes it to logs or artifacts.
 
-筛选公开声音：
+Discover public voices:
 
 ```bash
 node scripts/fish-voice.mjs discover \
   --id C01-search \
-  --title "御姐" --language zh --count 20 \
+  --title "confident mature woman" --language en --count 20 \
   --out <C01-public-voices.json>
 ```
 
-用 1–4 个 `reference_id` 生成同文试听候选：
+Use 1–4 `reference_id` values to generate same-line audition candidates:
 
 ```bash
 node scripts/fish-voice.mjs audition \
   --id C01-audition \
   --reference-ids <id1,id2,id3> \
-  --text "请把方案放在桌上。我们只讨论事实、时间和责任。" \
+  --text "Put the proposal on the table. We are discussing facts, timing, and responsibility." \
   --out <candidate-dir> \
   --model s2.1-pro-free
 ```
 
-`audition` 会获取每个来源声音的标题、可见性和 `licensed` 标记，生成标准 44.1 kHz PCM WAV，修正流式 WAV 长度头，并写候选 JSON。候选始终登记为 `evaluation-only`、`humanApproval=pending`、`productionExportAllowed=false`。
+`audition` obtains each source voice's title, visibility, and `licensed` marker, generates standard 44.1 kHz PCM WAV, fixes the streaming WAV length header, and writes candidate JSON. Candidates are always registered as `evaluation-only`, `humanApproval=pending`, and `productionExportAllowed=false`.
 
-将自有或已获授权录音建立为私有声音 ID：
+Create a private voice ID from owned or authorized recordings:
 
 ```bash
 node scripts/fish-voice.mjs clone \
@@ -87,7 +87,7 @@ node scripts/fish-voice.mjs clone \
   --out <C01-fish-voice.json>
 ```
 
-生成母版并自动登记到 `production.json`：
+Generate a master and register it automatically in `production.json`:
 
 ```bash
 node scripts/fish-voice.mjs master \
@@ -95,39 +95,39 @@ node scripts/fish-voice.mjs master \
   --id V-C01-MASTER \
   --character C01 \
   --reference-id <fish-reference-id> \
-  --text "我知道事情没有这么简单，但我们仍然要把真相说清楚。" \
+  --text "I know this is not that simple, but we still have to make the truth clear." \
   --out <voices/C01-master.wav> \
   --model s2.1-pro-free \
   --rights unknown
 ```
 
-确认 dry-run、发送文本、输出位置、范围和外部动作后，再追加：
+After confirming the dry run, sent text, output location, scope, and external action, append:
 
 ```text
---execute --confirm <本命令的 id>
+--execute --confirm <this-command-id>
 ```
 
-不得自动批量生成、自动重试或把项目剧本原文作为外部试音文本；优先使用能测试角色特征的通用句。
+Do not automatically batch-generate, auto-retry, or use a project's original script as external audition text. Prefer a generic line that tests the character's traits.
 
-## 5. 候选评审
+## 5. Candidate review
 
-每个角色至少比较：
+For every character, compare at least:
 
-- 年龄与身份可信度。
-- 共鸣位置、音高、气息和口音。
-- 正常语速下的自然度与吐字。
-- 克制、愤怒、悲伤和低声表达的可塑性。
-- 与其他主要角色的可区分度。
-- 多次生成的音色稳定性。
+- Credibility of age and identity.
+- Resonance placement, pitch, breath, and accent.
+- Naturalness and articulation at normal speaking speed.
+- Range for restrained, angry, sad, and quiet delivery.
+- Distinctiveness from other main characters.
+- Timbre stability across multiple generations.
 
-最终母版保持单人、干声、无音乐、无混响，建议 6–12 秒；输出 WAV 后人工试听，再执行 `voice-approve`。候选 WAV、Fish ID、来源许可、请求文本、模型、SHA-256 和授权范围都要留档。
+Keep the final master to one person, dry voice, no music, and no reverb; 6–12 seconds is recommended. Listen manually after WAV output, then run `voice-approve`. Keep candidate WAV files, Fish IDs, source licensing, request text, model, SHA-256, and rights scope on record.
 
-## 6. 禁止事项
+## 6. Prohibited actions
 
-- 调用未出现在官方 OpenAPI 的猜测端点。
-- 免费资产或 `licensed=false` 的公共声音标记成 `commercial`。
-- 未经同意克隆真人、演员、主播或公众人物。
-- 将私有角色声音发布为 `public`。
-- 未试听就批准为角色母版。
-- 免费结束后只改模型字段而不重新生成文件。
-- 同一句台词同时保留 H3 原声和 Fish 后期 TTS。
+- Calling a guessed endpoint that does not appear in the official OpenAPI.
+- Marking free assets or public voices with `licensed=false` as `commercial`.
+- Cloning a real person, actor, streamer, or public figure without consent.
+- Publishing a private character voice as `public`.
+- Approving a character master without listening to it.
+- Changing only the model field after a free tier ends rather than regenerating the file.
+- Keeping H3 native audio and Fish post TTS for the same line at once.

@@ -1,4 +1,4 @@
 interface:
-  display_name: "短剧生产总控"
-  short_description: "以16:9为默认画幅，管理短剧依赖、审批、H3任务与QC"
-  default_prompt: "使用 $short-drama-production 检查项目状态与依赖，并只在我已授权的范围内推进下一阶段。"
+  display_name: "Short Drama Production Control"
+  short_description: "Manage short-drama dependencies, approvals, H3 jobs, and QC with 16:9 as the default aspect ratio"
+  default_prompt: "Use $short-drama-production to inspect this project's status and dependencies, and advance to the next stage only within the scope I have authorized."

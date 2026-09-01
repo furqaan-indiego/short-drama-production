@@ -112,21 +112,21 @@ function beatIndexMap(directorScene, scriptScene, errors, at) {
   const sourceBeats = arrayOf(directorScene?.sourceBeats);
   const flow = arrayOf(scriptScene?.flow);
   const map = new Map();
-  if (sourceBeats.length !== flow.length) errors.push(`${at}：导演 sourceBeats ${sourceBeats.length} 拍与剧本 flow ${flow.length} 拍不一致`);
+  if (sourceBeats.length !== flow.length) errors.push(`${at}: director sourceBeats (${sourceBeats.length} beats) does not match script flow (${flow.length} beats)`);
   sourceBeats.forEach((beat, index) => {
     map.set(beat.beatId, index + 1);
     const scriptText = scriptBeatText(flow[index]);
-    if (flow[index] && normalizeText(beat.text) !== normalizeText(scriptText)) errors.push(`${at}：${beat.beatId} 文本与剧本第 ${index + 1} 拍不一致`);
+    if (flow[index] && normalizeText(beat.text) !== normalizeText(scriptText)) errors.push(`${at}: ${beat.beatId} text does not match script beat ${index + 1}`);
   });
   return map;
 }
 
 function shotBeatRange(shot, indexByBeat, errors, at) {
   const indexes = arrayOf(shot?.beatRefs).map((id) => indexByBeat.get(id)).filter(Number.isInteger);
-  if (indexes.length !== arrayOf(shot?.beatRefs).length) errors.push(`${at}：包含无法映射回剧本 flow 的 beatRefs`);
+  if (indexes.length !== arrayOf(shot?.beatRefs).length) errors.push(`${at}: contains beatRefs that cannot map back to script flow`);
   if (indexes.length === 0) return [0, 0];
   const sorted = [...indexes].sort((a, b) => a - b);
-  for (let i = 1; i < sorted.length; i += 1) if (sorted[i] !== sorted[i - 1] + 1) errors.push(`${at}：beatRefs 不是连续剧本节拍，必须技术拆镜并登记偏差`);
+  for (let i = 1; i < sorted.length; i += 1) if (sorted[i] !== sorted[i - 1] + 1) errors.push(`${at}: beatRefs are not contiguous script beats; split technically and record a deviation`);
   return [sorted[0], sorted[sorted.length - 1]];
 }
 
@@ -135,13 +135,13 @@ export function bridgeDirectorPackage(director, script, options = {}) {
   const warnings = [];
   const aspectRatio = options.aspectRatio ?? "16:9";
   const directorAspect = director?.format?.aspectRatio;
-  if (directorAspect !== aspectRatio) errors.push(`导演包画幅 ${directorAspect ?? "缺失"} 与项目画幅 ${aspectRatio} 不一致`);
+  if (directorAspect !== aspectRatio) errors.push(`Director-package aspect ratio ${directorAspect ?? "missing"} does not match project aspect ratio ${aspectRatio}`);
   const episodes = [];
 
   for (const directorEpisode of arrayOf(director?.episodes)) {
     const scriptEpisode = findScriptEpisode(script, directorEpisode.ep);
     if (!scriptEpisode) {
-      errors.push(`导演包第 ${directorEpisode.ep} 集在 script.json 中不存在`);
+      errors.push(`Director-package episode ${directorEpisode.ep} does not exist in script.json`);
       continue;
     }
     const segments = [];
@@ -149,7 +149,7 @@ export function bridgeDirectorPackage(director, script, options = {}) {
     arrayOf(directorEpisode.scenes).forEach((directorScene, directorSceneIndex) => {
       const located = findScriptScene(scriptEpisode, directorScene, directorSceneIndex);
       if (!located.scene) {
-        errors.push(`E${String(directorEpisode.ep).padStart(2, "0")} 的 ${directorScene.sceneId ?? `第 ${directorSceneIndex + 1} 场`} 无法映射到剧本场次`);
+        errors.push(`E${String(directorEpisode.ep).padStart(2, "0")} scene ${directorScene.sceneId ?? directorSceneIndex + 1} cannot map to a script scene`);
         return;
       }
       const at = `E${String(directorEpisode.ep).padStart(2, "0")}/${directorScene.sceneId}`;
@@ -161,10 +161,10 @@ export function bridgeDirectorPackage(director, script, options = {}) {
         const cuts = arrayOf(clip.shots).map((shot, shotIndex) => {
           const shotAt = `${at}/${shot.shotId ?? `SH${shotIndex + 1}`}`;
           const size = SIZE_MAP[shot.size] ?? "medium";
-          if (!SIZE_MAP[shot.size]) warnings.push(`${shotAt}：未知导演景别 ${shot.size}，桥接为 medium`);
+          if (!SIZE_MAP[shot.size]) warnings.push(`${shotAt}: unknown director shot size ${shot.size}; bridged as medium`);
           const frame = String(shot.framePrompt ?? "").trim();
-          if (!frame.toLowerCase().includes(SIZE_PHRASES[size])) warnings.push(`${shotAt}：framePrompt 仍需补英文景别短语 ${SIZE_PHRASES[size]}`);
-          if (shot.duration > 5) warnings.push(`${shotAt}：导演镜头 ${shot.duration}s 超过常规 2–5s 注意力节奏；保留导演意图，不静默切碎`);
+          if (!frame.toLowerCase().includes(SIZE_PHRASES[size])) warnings.push(`${shotAt}: framePrompt still needs the English shot-size phrase ${SIZE_PHRASES[size]}`);
+          if (shot.duration > 5) warnings.push(`${shotAt}: director shot duration of ${shot.duration}s exceeds the usual 2–5s attention rhythm; preserve directorial intent and do not silently fragment it`);
           return {
             beats: shotBeatRange(shot, indexByBeat, errors, shotAt),
             seconds: shot.duration,
@@ -255,9 +255,9 @@ export function validateBridge(board, director, script, options = {}) {
   const errors = [];
   const warnings = [];
   const aspectRatio = options.aspectRatio ?? board?.aspectRatio ?? "16:9";
-  if (board?.aspectRatio !== aspectRatio) errors.push(`storyboard 画幅 ${board?.aspectRatio ?? "缺失"} 与项目 ${aspectRatio} 不一致`);
-  if (director?.format?.aspectRatio !== aspectRatio) errors.push(`director 画幅 ${director?.format?.aspectRatio ?? "缺失"} 与项目 ${aspectRatio} 不一致`);
-  if (aspectRatio === "16:9" && board?.compositionProfile !== "landscape-ensemble") errors.push("16:9 storyboard 必须使用 landscape-ensemble 构图配置");
+  if (board?.aspectRatio !== aspectRatio) errors.push(`Storyboard aspect ratio ${board?.aspectRatio ?? "missing"} does not match project ${aspectRatio}`);
+  if (director?.format?.aspectRatio !== aspectRatio) errors.push(`Director aspect ratio ${director?.format?.aspectRatio ?? "missing"} does not match project ${aspectRatio}`);
+  if (aspectRatio === "16:9" && board?.compositionProfile !== "landscape-ensemble") errors.push("A 16:9 storyboard must use the landscape-ensemble composition profile");
 
   const source = expectedShots(director, script);
   errors.push(...source.errors);
@@ -266,26 +266,26 @@ export function validateBridge(board, director, script, options = {}) {
     return arrayOf(segment?.deviations).some((deviation) => deviation?.sourceShotId === shotId && deviation?.status === "approved" && isFilled(deviation?.approvedBy) && arrayOf(deviation?.fields).includes(field));
   }
   function changed(mapped, shotId, field, message) {
-    if (approvedDeviation(mapped.segment, shotId, field)) warnings.push(`${shotId} 的 ${field} 存在已批准技术偏差`);
+    if (approvedDeviation(mapped.segment, shotId, field)) warnings.push(`${shotId} has an approved technical deviation for ${field}`);
     else errors.push(message);
   }
   for (const episode of arrayOf(board?.episodes)) for (const segment of arrayOf(episode?.segments)) {
     const duration = arrayOf(segment.cuts).reduce((sum, cut) => sum + Number(cut?.seconds ?? 0), 0);
     const sourceClip = [...source.expected.values()].find((item) => item.clip.clipId === segment.sourceClipId)?.clip;
-    if (!sourceClip) errors.push(`${segment.id} 缺少有效 sourceClipId`);
-    else if (Math.abs(duration - sourceClip.duration) > 0.001) errors.push(`${segment.id} 技术分镜 ${duration}s 与导演片段 ${sourceClip.duration}s 不一致`);
+    if (!sourceClip) errors.push(`${segment.id} is missing a valid sourceClipId`);
+    else if (Math.abs(duration - sourceClip.duration) > 0.001) errors.push(`${segment.id} technical-storyboard duration ${duration}s does not match director segment ${sourceClip.duration}s`);
     for (const deviation of arrayOf(segment.deviations)) {
-      if (!source.expected.has(deviation?.sourceShotId)) errors.push(`${segment.id} 的偏差引用未知 sourceShotId ${deviation?.sourceShotId ?? ""}`);
-      for (const key of ["reason", "original", "change", "dramaticImpact", "status"]) if (!isFilled(deviation?.[key])) errors.push(`${segment.id} 偏差 ${deviation?.deviationId ?? "未编号"} 缺少 ${key}`);
-      if (!Array.isArray(deviation?.fields) || deviation.fields.length === 0) errors.push(`${segment.id} 偏差 ${deviation?.deviationId ?? "未编号"} 必须列出 fields`);
-      if (deviation?.status === "approved" && !isFilled(deviation?.approvedBy)) errors.push(`${segment.id} 已批准偏差 ${deviation?.deviationId ?? "未编号"} 缺少 approvedBy`);
+      if (!source.expected.has(deviation?.sourceShotId)) errors.push(`${segment.id} deviation references unknown sourceShotId ${deviation?.sourceShotId ?? ""}`);
+      for (const key of ["reason", "original", "change", "dramaticImpact", "status"]) if (!isFilled(deviation?.[key])) errors.push(`${segment.id} deviation ${deviation?.deviationId ?? "unnumbered"} is missing ${key}`);
+      if (!Array.isArray(deviation?.fields) || deviation.fields.length === 0) errors.push(`${segment.id} deviation ${deviation?.deviationId ?? "unnumbered"} must list fields`);
+      if (deviation?.status === "approved" && !isFilled(deviation?.approvedBy)) errors.push(`${segment.id} approved deviation ${deviation?.deviationId ?? "unnumbered"} is missing approvedBy`);
     }
     for (const cut of arrayOf(segment.cuts)) {
       if (!isFilled(cut?.sourceShotId)) {
-        errors.push(`${segment.id} 存在缺少 sourceShotId 的技术镜头`);
+        errors.push(`${segment.id} contains a technical shot missing sourceShotId`);
         continue;
       }
-      if (actual.has(cut.sourceShotId)) errors.push(`${cut.sourceShotId} 被多个技术镜头重复覆盖`);
+      if (actual.has(cut.sourceShotId)) errors.push(`${cut.sourceShotId} is covered redundantly by multiple technical shots`);
       actual.set(cut.sourceShotId, { cut, segment });
     }
   }
@@ -293,21 +293,21 @@ export function validateBridge(board, director, script, options = {}) {
   for (const [shotId, item] of source.expected) {
     const mapped = actual.get(shotId);
     if (!mapped) {
-      errors.push(`导演镜头 ${shotId} 没有被技术分镜覆盖`);
+      errors.push(`Director shot ${shotId} is not covered by the technical storyboard`);
       continue;
     }
     const cut = mapped.cut;
-    if (JSON.stringify(cut.beats) !== JSON.stringify(item.range)) errors.push(`${shotId} 的剧本节拍认领发生变化`);
-    if (cut.dramaticPurpose !== item.shot.dramaticPurpose) errors.push(`${shotId} 的 dramaticPurpose 被改写`);
-    if (cut.directorIntent?.originalSize !== item.shot.size || cut.directorIntent?.angle !== item.shot.angle || cut.directorIntent?.lensMm !== item.shot.lensMm || JSON.stringify(cut.directorIntent?.camera) !== JSON.stringify(item.shot.camera)) errors.push(`${shotId} 的 directorIntent 快照被篡改`);
-    if (cut.size !== SIZE_MAP[item.shot.size]) changed(mapped, shotId, "size", `${shotId} 的技术景别发生未批准偏差`);
-    if (cut.angle !== item.shot.angle) changed(mapped, shotId, "angle", `${shotId} 的角度发生未批准偏差`);
-    if (cut.lensMm !== item.shot.lensMm) changed(mapped, shotId, "lensMm", `${shotId} 的焦段发生未批准偏差`);
-    if (cut.screenDirection !== item.shot.screenDirection) changed(mapped, shotId, "screenDirection", `${shotId} 的屏幕方向发生未批准偏差`);
-    if (cut.axisAction !== item.shot.axisAction) changed(mapped, shotId, "axisAction", `${shotId} 的轴线策略发生未批准偏差`);
-    if (JSON.stringify(cut.cameraPlan) !== JSON.stringify(item.shot.camera)) changed(mapped, shotId, "camera", `${shotId} 的运镜计划发生未批准偏差`);
+    if (JSON.stringify(cut.beats) !== JSON.stringify(item.range)) errors.push(`${shotId} script-beat coverage changed`);
+    if (cut.dramaticPurpose !== item.shot.dramaticPurpose) errors.push(`${shotId} dramaticPurpose was rewritten`);
+    if (cut.directorIntent?.originalSize !== item.shot.size || cut.directorIntent?.angle !== item.shot.angle || cut.directorIntent?.lensMm !== item.shot.lensMm || JSON.stringify(cut.directorIntent?.camera) !== JSON.stringify(item.shot.camera)) errors.push(`${shotId} directorIntent snapshot was tampered with`);
+    if (cut.size !== SIZE_MAP[item.shot.size]) changed(mapped, shotId, "size", `${shotId} technical shot size has an unapproved deviation`);
+    if (cut.angle !== item.shot.angle) changed(mapped, shotId, "angle", `${shotId} angle has an unapproved deviation`);
+    if (cut.lensMm !== item.shot.lensMm) changed(mapped, shotId, "lensMm", `${shotId} focal length has an unapproved deviation`);
+    if (cut.screenDirection !== item.shot.screenDirection) changed(mapped, shotId, "screenDirection", `${shotId} screen direction has an unapproved deviation`);
+    if (cut.axisAction !== item.shot.axisAction) changed(mapped, shotId, "axisAction", `${shotId} axis strategy has an unapproved deviation`);
+    if (JSON.stringify(cut.cameraPlan) !== JSON.stringify(item.shot.camera)) changed(mapped, shotId, "camera", `${shotId} camera plan has an unapproved deviation`);
   }
-  for (const shotId of actual.keys()) if (!source.expected.has(shotId)) errors.push(`技术分镜引用未知导演镜头 ${shotId}`);
+  for (const shotId of actual.keys()) if (!source.expected.has(shotId)) errors.push(`Technical storyboard references unknown director shot ${shotId}`);
   return { ok: errors.length === 0, errors, warnings, stats: { directorShots: source.expected.size, mappedShots: actual.size, segments: arrayOf(board?.episodes).reduce((sum, ep) => sum + arrayOf(ep?.segments).length, 0) } };
 }
 
@@ -337,13 +337,13 @@ Usage:
 function main() {
   const [command, target, ...args] = process.argv.slice(2);
   if (!command || ["help", "-h", "--help"].includes(command)) return usage();
-  if (!target) throw new Error(`${command} 需要输入路径`);
+  if (!target) throw new Error(`${command} requires an input path`);
   if (command === "build") {
     const directorPath = path.resolve(target);
     const scriptPath = path.resolve(option(args, "--script", ""));
     const storyboardPath = path.resolve(option(args, "--out", "storyboard.json"));
-    if (!fs.existsSync(scriptPath)) throw new Error("缺少有效 --script");
-    if (fs.existsSync(storyboardPath) && !args.includes("--force")) throw new Error(`输出已存在，使用 --force 才能覆盖: ${storyboardPath}`);
+    if (!fs.existsSync(scriptPath)) throw new Error("Missing a valid --script");
+    if (fs.existsSync(storyboardPath) && !args.includes("--force")) throw new Error(`Output already exists; use --force to overwrite: ${storyboardPath}`);
     const result = bridgeDirectorPackage(readJson(directorPath), readJson(scriptPath), { aspectRatio: option(args, "--aspect", "16:9"), directorPath, scriptPath, storyboardPath });
     if (result.errors.length) throw new Error(result.errors.join("\n"));
     writeBridgePack(result.board, storyboardPath);
@@ -353,7 +353,7 @@ function main() {
   if (command === "validate") {
     const directorPath = path.resolve(option(args, "--director", ""));
     const scriptPath = path.resolve(option(args, "--script", ""));
-    if (!fs.existsSync(directorPath) || !fs.existsSync(scriptPath)) throw new Error("validate 需要有效 --director 与 --script");
+    if (!fs.existsSync(directorPath) || !fs.existsSync(scriptPath)) throw new Error("validate requires valid --director and --script");
     const result = validateBridge(readJson(path.resolve(target)), readJson(directorPath), readJson(scriptPath), { aspectRatio: option(args, "--aspect", "16:9") });
     console.log(JSON.stringify(result, null, 2));
     if (!result.ok) process.exitCode = 1;
